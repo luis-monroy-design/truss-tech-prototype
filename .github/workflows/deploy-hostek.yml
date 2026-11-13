@@ -1,0 +1,59 @@
+# Deploys the prototype to the Truss Tech staging space on Hostek (FTP),
+# separate from the main domain until the company approves it.
+#
+# Credentials live ONLY in the repository's secrets (Settings > Secrets and variables > Actions):
+#   FTP_SERVER     FTP host (IP or hostname)
+#   FTP_USERNAME   FTP user
+#   FTP_PASSWORD   FTP password
+# Optional repository variables (Settings > Secrets and variables > Actions > Variables):
+#   FTP_SERVER_DIR folder on the server, default ./  (the FTP account's root)
+#   FTP_PROTOCOL   ftps (default) or ftp if the server does not support TLS
+
+name: Deploy to Hostek staging
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: hostek-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check that FTP secrets exist
+        id: check
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          if [ -z "$FTP_SERVER" ] || [ -z "$FTP_USERNAME" ] || [ -z "$FTP_PASSWORD" ]; then
+            echo "::warning::FTP secrets are not set yet; skipping the deploy."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.check.outputs.ready == 'true'
+        uses: actions/checkout@v4
+
+      - name: Upload site over FTP
+        if: steps.check.outputs.ready == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
+          server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            .github/**
+            README.md
+            .nojekyll
