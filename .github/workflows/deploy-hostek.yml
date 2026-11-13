@@ -1,13 +1,20 @@
-# Deploys the prototype to the Truss Tech staging space on Hostek (FTP),
+# Deploys the prototype to the Truss Tech staging space on Hostek (FTPS),
 # separate from the main domain until the company approves it.
 #
 # Credentials live ONLY in the repository's secrets (Settings > Secrets and variables > Actions):
 #   FTP_SERVER     FTP host (IP or hostname)
 #   FTP_USERNAME   FTP user
 #   FTP_PASSWORD   FTP password
-# Optional repository variables (Settings > Secrets and variables > Actions > Variables):
-#   FTP_SERVER_DIR folder on the server, default ./  (the FTP account's root)
-#   FTP_PROTOCOL   ftps (default) or ftp if the server does not support TLS
+# Repository variables (Settings > Secrets and variables > Actions > Variables):
+#   FTP_SERVER_DIR subfolder inside the FTP account, e.g. website-prototype/ (default: account root)
+#
+# Uses lftp "mirror": uploads new/changed files and removes files deleted from the repo,
+# only inside FTP_SERVER_DIR.
+#
+# TLS: the Hostek FTP server presents a self-signed, expired certificate (CN=*.ezhostingserver.com),
+# so normal verification cannot pass. Instead of turning verification off, only THAT certificate is
+# trusted, pinned by its SHA-1 fingerprint (same as accepting it once in FileZilla). If Hostek
+# replaces the certificate, the deploy fails until the new fingerprint is reviewed and pinned here.
 
 name: Deploy to Hostek staging
 
@@ -42,20 +49,28 @@ jobs:
         if: steps.check.outputs.ready == 'true'
         uses: actions/checkout@v4
 
-      - name: Upload site over FTP
+      - name: Install lftp
         if: steps.check.outputs.ready == 'true'
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
-          server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
-          log-level: ${{ vars.FTP_LOG_LEVEL || 'standard' }}
-          timeout: 120000
-          exclude: |
-            **/.git*
-            **/.git*/**
-            .github/**
-            README.md
-            .nojekyll
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      - name: Mirror site over FTPS
+        if: steps.check.outputs.ready == 'true'
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          TARGET_DIR: ${{ vars.FTP_SERVER_DIR || '.' }}
+        run: |
+          lftp -u "$FTP_USERNAME" --env-password "$FTP_SERVER" <<EOF
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate/21:C7:37:F4:7E:FF:17:E9:0A:D6:D9:02:D8:E8:9A:C2:1B:55:68:7B no
+          set net:max-retries 3
+          set net:timeout 60
+          mkdir -p -f "$TARGET_DIR"
+          mirror --reverse --delete --verbose --parallel=2 \
+            --exclude-glob .git* --exclude-glob .git/ --exclude-glob .github/ \
+            --exclude-glob README.md --exclude-glob .nojekyll \
+            ./ "$TARGET_DIR"
+          bye
+          EOF
