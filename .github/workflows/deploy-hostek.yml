@@ -51,6 +51,8 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           protocol: ${{ vars.FTP_PROTOCOL || 'ftps' }}
           server-dir: ${{ vars.FTP_SERVER_DIR || './' }}
+          log-level: ${{ vars.FTP_LOG_LEVEL || 'standard' }}
+          timeout: 120000
           exclude: |
             **/.git*
             **/.git*/**
