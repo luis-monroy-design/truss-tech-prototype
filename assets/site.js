@@ -68,6 +68,17 @@
     steps.forEach(function (s, i) { if (s.getBoundingClientRect().top < vh * 0.55) active = i; });
     steps.forEach(function (s, i) { s.classList.toggle("is-active", i === active); s.classList.toggle("is-past", i < active); });
     var out = proc.querySelector("[data-step-count]"); if (out) out.textContent = "0" + (active + 1) + " / 0" + steps.length;
+    // scroll-scrubbed drawing: each step's group draws as its text crosses the viewport
+    var groups = proc.querySelectorAll("[data-scene-step]");
+    steps.forEach(function (s, i) {
+      var g = groups[i]; if (!g) return;
+      var sr = s.getBoundingClientRect();
+      var t = reduce ? 1 : Math.max(0, Math.min(1, (vh * 0.85 - sr.top) / (sr.height * 0.75)));
+      g.style.setProperty("--t", t.toFixed(3));
+      g.classList.toggle("is-on", i === active);
+    });
+    var cap = proc.querySelector("[data-scene-caption]");
+    if (cap && steps[active]) { var h = steps[active].querySelector("h3"); var txt = "Step 0" + (active + 1) + " / 0" + steps.length + " · " + (h ? h.textContent : ""); if (cap.textContent !== txt) cap.textContent = txt; }
   }
 
   // 6. Magnetic primary button (small pull, spring back)

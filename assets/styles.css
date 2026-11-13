@@ -461,3 +461,17 @@ fieldset { border:0; margin:0; padding:0; min-width:0; }
   .proc-steps li, .js .proc-steps li { min-height:0; padding:var(--space-8) 0; opacity:1; }
   .masonry { columns:1; }
 }
+
+/* Process scene: one construction drawing per step, scrubbed by scroll */
+.proc-scene { margin:var(--space-12) 0 0; }
+.proc-scene svg { display:block; width:100%; max-width:520px; height:auto; max-height:42vh; overflow:visible; }
+.proc-scene .vt-cota { margin-top:var(--space-4); max-width:520px; color:var(--madera-ceniza); }
+.ps-g { opacity:0; transition:opacity var(--dur-medio) var(--ease-asentar); }
+.ps-g.is-on { opacity:1; }
+.ps-g .s { fill:none; stroke:var(--madera-albura); stroke-opacity:.82; stroke-width:1.2; stroke-linecap:round; stroke-linejoin:round; stroke-dasharray:1; stroke-dashoffset:calc(1 - var(--t, 0)); }
+.ps-g .h { fill:none; stroke:var(--cta); stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; opacity:clamp(0, calc((var(--t, 0) - .55) * 3), 1); }
+.ps-g circle.h { fill:var(--cta); stroke:none; }
+.proc-side > div { display:flex; flex-direction:column; }
+@media (prefers-reduced-motion: reduce) { .ps-g .s { stroke-dashoffset:0; } .ps-g .h { opacity:1; } }
+@media (max-height: 760px) { .proc-scene svg { max-height:34vh; } }
+@media (max-width: 720px) { .proc-scene { display:none; } }
