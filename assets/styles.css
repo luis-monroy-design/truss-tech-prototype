@@ -475,3 +475,26 @@ fieldset { border:0; margin:0; padding:0; min-width:0; }
 @media (prefers-reduced-motion: reduce) { .ps-g .s { stroke-dashoffset:0; } .ps-g .h { opacity:1; } }
 @media (max-height: 760px) { .proc-scene svg { max-height:34vh; } }
 @media (max-width: 720px) { .proc-scene { display:none; } }
+
+/* Image reserves: clearly read as "a photo goes here" (stronger fill, hatch, dashed frame, icon) */
+:root {
+  --reserva-fill:#cdc7b5;
+  --reserva-hatch:rgba(21,20,15,.07);
+  --reserva-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.25'%3E%3Crect x='3' y='4' width='18' height='16'/%3E%3Cpath d='M3 16l5-5 4 4 3-3 6 6'/%3E%3Ccircle cx='16' cy='9' r='1.6'/%3E%3C/svg%3E");
+}
+.reserva, .vt-card__media {
+  background:repeating-linear-gradient(135deg, transparent 0 11px, var(--reserva-hatch) 11px 12px), var(--reserva-fill);
+  outline:1px dashed var(--line-strong); outline-offset:-1px; color:#45423a;
+}
+.reserva::before, .vt-card__media::before {
+  content:""; width:44px; height:44px; background:currentColor; opacity:.7;
+  -webkit-mask:var(--reserva-icon) center/contain no-repeat; mask:var(--reserva-icon) center/contain no-repeat;
+}
+.reserva::before { position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); }
+.vt-card__media { grid-auto-flow:row; align-content:center; gap:var(--space-3); }
+.reserva > span { color:#45423a; }
+/* Dark context (full-bleed openings) */
+.opening .reserva { background:repeating-linear-gradient(135deg, transparent 0 11px, rgba(240,238,229,.05) 11px 12px), var(--gradient-carbon); outline-color:rgba(171,167,155,.5); color:var(--madera-ceniza); }
+.opening .reserva > span { color:var(--madera-ceniza); }
+.opening .reserva::before { top:38%; left:78%; }
+@media (max-width: 720px) { .opening .reserva::before { top:22%; left:80%; } }
