@@ -155,10 +155,6 @@ if (form) {
       showAlert(`${errs.length} ${errs.length === 1 ? "field needs" : "fields need"} attention`, "", { list: errs });
       return;
     }
-    if (form.querySelector(".cf-turnstile") && !token()) {
-      showAlert("One more step", "Complete the verification just above the Submit button, then submit again.");
-      return;
-    }
     alertBox.hidden = true;
     const val = (id) => document.getElementById(id).value.trim();
     const fields = {
