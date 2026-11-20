@@ -601,3 +601,22 @@ fieldset { border:0; margin:0; padding:0; min-width:0; }
   .fstep-text .title { font-size:22px; }
   .form-layout .dropzone .title { font-size:18px; }
 }
+
+/* ---------- Hero 3D (WebGL) ---------- */
+.hero-3d { position:absolute; inset:0; z-index:0; opacity:0; transition:opacity 1.6s var(--ease-asentar); }
+.hero-3d canvas { display:block; width:100%; height:100%; }
+.hero-3d::after { content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(90deg, rgba(21,20,15,.9) 0%, rgba(21,20,15,.62) 30%, rgba(21,20,15,.12) 55%, transparent 70%),
+             linear-gradient(180deg, rgba(21,20,15,.55) 0%, transparent 22%); }
+.hero.is-3d-ready .hero-3d { opacity:1; }
+.hero.has-3d .truss-scene { display:none; }
+@media (max-width: 900px) {
+  .hero-3d::after { background:linear-gradient(180deg, rgba(21,20,15,.45) 0%, rgba(21,20,15,0) 12%, rgba(21,20,15,.1) 26%, rgba(21,20,15,.82) 40%, rgba(21,20,15,.96) 100%); }
+}
+@media (prefers-reduced-motion: reduce) { .hero-3d { transition:none; } }
+/* ---------- Process 3D ---------- */
+.proc-3d { display:none; width:100%; max-width:560px; aspect-ratio:480 / 340; max-height:46vh; }
+.proc-3d canvas { display:block; width:100%; height:100%; }
+.has-3d .proc-3d { display:block; }
+.has-3d .proc-scene svg { display:none; }
+@media (max-width: 720px) { .has-3d .proc-3d { max-width:100%; height:min(27vh, 240px); aspect-ratio:auto; margin:0 auto; } }
