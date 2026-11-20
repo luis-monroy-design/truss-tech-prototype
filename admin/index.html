@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Quote requests · Truss Tech</title>
 <meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin.css?v=1">
+<link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css?v=2">
 </head>
 <body>
 <a class="skip-link" href="#list">Skip to requests</a>
@@ -16,46 +19,51 @@
 <header class="topbar">
   <div class="topbar__brand">
     <span class="logo">TRUSS TECH</span>
-    <span class="topbar__divider" aria-hidden="true"></span>
     <span class="topbar__app">Quote requests</span>
   </div>
   <div class="topbar__tools">
     <span class="sync" id="sync" aria-live="polite"></span>
     <button class="icon-btn" id="refresh" type="button" title="Refresh (R)" aria-label="Refresh">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6M16.5 3.5v3.5H13"/></svg>
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 10a6.5 6.5 0 1 1-1.9-4.6M16.5 3.5v3.5H13"/></svg>
     </button>
     <button class="me" id="me" type="button" title="Change your name"></button>
   </div>
 </header>
 
 <div class="preview-bar" role="note">
-  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5M10 6.2v.1"/></svg>
+  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5M10 6.2v.1"/></svg>
   <p><strong>Preview with test data.</strong> <span class="preview-bar__long">This page is public and shows 3 test requests only. Sign-in will be required before the website goes live; real customer requests are never shown here without it.</span></p>
   <button class="link-btn" id="reset-demo" type="button">Reset test data</button>
 </div>
 
 <main class="layout" id="layout">
+  <nav class="sidebar" aria-label="Filter by status">
+    <p class="sidebar__title">Requests</p>
+    <div class="side-list" id="side-filters" role="tablist" aria-orientation="vertical"></div>
+  </nav>
+
   <section class="pane-list" aria-label="Requests">
     <div class="list-tools">
+      <div class="list-head">
+        <h1 class="list-title" id="list-title">All requests</h1>
+        <span class="list-count" id="count"></span>
+      </div>
       <label class="search">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/></svg>
         <span class="sr-only">Search requests</span>
-        <input id="q" type="search" placeholder="Search company, name, reference, job site" autocomplete="off">
+        <input id="q" type="search" placeholder="Search" autocomplete="off">
         <kbd aria-hidden="true">/</kbd>
       </label>
       <div class="filters" id="filters" role="tablist" aria-label="Filter by status"></div>
       <div class="list-meta">
-        <span id="count"></span>
-        <span class="list-meta__right">
-          <label class="sort"><span class="sr-only">Sort</span>
-            <select id="sort">
-              <option value="received">Newest first</option>
-              <option value="bid">Bid date, soonest</option>
-              <option value="company">Company A–Z</option>
-            </select>
-          </label>
-          <button class="link-btn" id="export" type="button" title="Download the visible list as a spreadsheet (CSV)">Export</button>
-        </span>
+        <label class="sort"><span class="sr-only">Sort</span>
+          <select id="sort">
+            <option value="received">Sort by Date Received</option>
+            <option value="bid">Sort by Bid Date</option>
+            <option value="company">Sort by Company</option>
+          </select>
+        </label>
+        <button class="link-btn" id="export" type="button" title="Download the visible list as a spreadsheet (CSV)">Export</button>
       </div>
     </div>
     <ul class="rows" id="list" aria-label="Quote requests"></ul>
@@ -67,28 +75,28 @@
 <div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-labelledby="viewer-name">
   <div class="viewer__bar">
     <button class="icon-btn icon-btn--on-dark" data-viewer="close" type="button" aria-label="Close preview" title="Close (Esc)">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15"/></svg>
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="m5.5 5.5 9 9M14.5 5.5l-9 9"/></svg>
     </button>
     <div class="viewer__title"><p id="viewer-name"></p><span id="viewer-pos"></span></div>
     <div class="viewer__actions">
       <span class="viewer__zoom" id="viewer-zoom">
         <button class="icon-btn icon-btn--on-dark" data-viewer="out" type="button" aria-label="Zoom out" title="Zoom out (−)">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4M6.5 9h5"/></svg>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4M6.5 9h5"/></svg>
         </button>
         <button class="btn btn--sm btn--on-dark" data-viewer="fit" type="button" title="Fit to width (0)">Fit</button>
         <button class="icon-btn icon-btn--on-dark" data-viewer="in" type="button" aria-label="Zoom in" title="Zoom in (+)">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4M6.5 9h5M9 6.5v5"/></svg>
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4M6.5 9h5M9 6.5v5"/></svg>
         </button>
       </span>
       <span class="viewer__sep" aria-hidden="true"></span>
       <button class="icon-btn icon-btn--on-dark" data-viewer="prev" type="button" aria-label="Previous file" title="Previous file (←)">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m12 4-6 6 6 6"/></svg>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 4-6 6 6 6"/></svg>
       </button>
       <button class="icon-btn icon-btn--on-dark" data-viewer="next" type="button" aria-label="Next file" title="Next file (→)">
-        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m8 4 6 6-6 6"/></svg>
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 4 6 6-6 6"/></svg>
       </button>
-      <a class="btn btn--on-dark" id="viewer-open" target="_blank" rel="noopener">Open in new tab</a>
-      <a class="btn btn--primary" id="viewer-download" download>Download</a>
+      <a class="btn btn--sm btn--on-dark" id="viewer-open" target="_blank" rel="noopener">Open in New Tab</a>
+      <a class="btn btn--sm btn--primary" id="viewer-download" download>Download</a>
     </div>
   </div>
   <div class="viewer__stage" id="viewer-stage"></div>
@@ -96,12 +104,15 @@
 
 <dialog class="ask" id="ask-name">
   <form method="dialog">
+    <div class="ask__icon" aria-hidden="true">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M3.8 17c1-3.2 3.4-4.8 6.2-4.8s5.2 1.6 6.2 4.8"/></svg>
+    </div>
     <h2>What's your name?</h2>
     <p>It appears next to the changes and notes you make, so the team knows who did what.</p>
-    <label class="field"><span>Your name</span><input id="ask-name-input" maxlength="80" autocomplete="name" required></label>
+    <label class="field"><span class="sr-only">Your name</span><input id="ask-name-input" maxlength="80" autocomplete="name" placeholder="Your name" required></label>
     <div class="ask__actions">
-      <button class="btn btn--ghost" type="button" data-dialog-cancel>Cancel</button>
-      <button class="btn btn--ink" value="ok" type="submit">Continue</button>
+      <button class="btn" type="button" data-dialog-cancel>Cancel</button>
+      <button class="btn btn--primary" value="ok" type="submit">Continue</button>
     </div>
   </form>
 </dialog>
@@ -111,6 +122,6 @@
   <button class="toast__undo" id="toast-undo" type="button" hidden>Undo</button>
 </div>
 
-<script type="module" src="admin.js?v=1"></script>
+<script type="module" src="admin.js?v=2"></script>
 </body>
 </html>

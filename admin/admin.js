@@ -18,9 +18,9 @@ const STATUSES = [
 const LABEL = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
 const OPEN = new Set(["new", "in_review"]);
 const NEXT = {
-  new: { to: "in_review", label: "Start review" },
-  in_review: { to: "quoted", label: "Mark as quoted" },
-  quoted: { to: "won", label: "Mark as won" },
+  new: { to: "in_review", label: "Start Review" },
+  in_review: { to: "quoted", label: "Mark as Quoted" },
+  quoted: { to: "won", label: "Mark as Won" },
 };
 const PROJECT = { multifamily: "Multifamily", commercial: "Commercial", build_to_rent: "Build-to-Rent", senior_living: "Senior Living", single_family: "Single-family", other: "Other" };
 const SCOPE = { roof: "Roof trusses", floor: "Floor trusses", roof_floor: "Roof + floor trusses" };
@@ -138,7 +138,25 @@ function renderFilters() {
     <button class="chip" role="tab" type="button" data-filter="${f.id}" aria-selected="${state.filter === f.id}">
       ${f.id === "all" ? "" : `<span class="status" data-s="${f.id}" aria-hidden="true"></span>`}${esc(f.label)}<span class="chip__n">${count(f.id)}</span>
     </button>`).join("");
+  $("#side-filters").innerHTML = FILTERS.map((f) => {
+    const n = count(f.id);
+    return `<button class="side-item" role="tab" type="button" data-filter="${f.id}" aria-selected="${state.filter === f.id}">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SIDE_ICON[f.id]}</svg>
+      <span class="side-item__label">${esc(f.id === "all" ? "All Requests" : f.label)}</span>${n ? `<span class="side-item__n">${n}</span>` : ""}
+    </button>`;
+  }).join("");
+  $("#list-title").textContent = state.filter === "all" ? "All requests" : LABEL[state.filter];
 }
+const SIDE_ICON = {
+  all: '<path d="M3 11h4l1.5 2.5h3L13 11h4"/><path d="M3 11l2-6h10l2 6v5H3z"/>',
+  new: '<circle cx="10" cy="10" r="7"/><circle cx="10" cy="10" r="2.5" fill="currentColor"/>',
+  in_review: '<circle cx="9" cy="9" r="5.5"/><path d="m13 13 4 4"/>',
+  quoted: '<path d="M3 9.5 17 3l-5 14-2.5-5.5L3 9.5Z"/><path d="m9.5 11.5 3-3"/>',
+  won: '<circle cx="10" cy="10" r="7"/><path d="m7 10.2 2 2 4-4.4"/>',
+  lost: '<circle cx="10" cy="10" r="7"/><path d="m7.5 7.5 5 5m0-5-5 5"/>',
+  spam: '<path d="M10 3 2.8 16h14.4L10 3Z"/><path d="M10 8.5v3.5M10 14.2v.1"/>',
+};
+const MOD = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘" : "Ctrl";
 
 function rowHTML(r) {
   const q = state.q.trim();
@@ -207,7 +225,7 @@ function eventHTML(e) {
     default: text = esc(e.kind);
   }
   return `<li class="ev${e.pending ? " is-pending" : ""}">
-    <span class="ev__icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">${ICON[e.kind] || ICON.status}</svg></span>
+    <span class="ev__icon" data-k="${esc(e.kind)}"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[e.kind] || ICON.status}</svg></span>
     <div><p class="ev__text">${text}<span class="ev__time" title="${esc(fullDate(e.created_at))}">${esc(ago(e.created_at))}</span></p>
     ${e.kind === "note" ? `<p class="ev__note">${esc(e.body)}</p>` : ""}</div></li>`;
 }
@@ -270,7 +288,7 @@ function renderDetail() {
           <span class="status" data-s="${r.status}" aria-hidden="true"></span>
           <select data-action="status">${STATUSES.map((s) => `<option value="${s.id}"${s.id === r.status ? " selected" : ""}>${s.label}</option>`).join("")}</select>
         </label>
-        <a class="btn" href="${esc(mailto)}">Reply by email</a>
+        <a class="btn" href="${esc(mailto)}">Reply</a>
       </div>
     </div>
   </header>
@@ -278,8 +296,8 @@ function renderDetail() {
     <div class="d-main">
       <section class="sec" aria-labelledby="h-plans">
         <div class="sec__head"><h2 id="h-plans">Plans · ${files.length}</h2>
-          ${r.files_url ? `<a class="link-btn" href="${esc(r.files_url)}" target="_blank" rel="noopener">Open folder in SharePoint</a>`
-            : files.length > 1 && files.every((f) => fileLinks(f)) ? '<button class="link-btn" type="button" data-action="download-all">Download all</button>' : ""}
+          ${r.files_url ? `<a class="link-btn" href="${esc(r.files_url)}" target="_blank" rel="noopener">Open Folder in SharePoint</a>`
+            : files.length > 1 && files.every((f) => fileLinks(f)) ? '<button class="link-btn" type="button" data-action="download-all">Download All</button>' : ""}
         </div>
         ${files.length ? `<ul class="files">${files.map((f, i) => {
           const l = fileLinks(f);
@@ -308,7 +326,7 @@ function renderDetail() {
         <form class="composer" data-action="note">
           <label class="sr-only" for="note">Add an internal note</label>
           <textarea id="note" name="note" maxlength="4000" placeholder="Add a note for the team. The customer never sees it.">${esc(state.drafts[r.reference] || "")}</textarea>
-          <div class="composer__row"><span>Ctrl + Enter to save</span><button class="btn btn--ink btn--sm" type="submit">Add note</button></div>
+          <div class="composer__row"><span>${MOD} + Enter to save</span><button class="btn btn--primary btn--sm" type="submit">Add Note</button></div>
         </form>
         <ol class="timeline">${events.map(eventHTML).join("")}</ol>
       </section>
@@ -323,7 +341,7 @@ function renderDetail() {
           <input id="owner" name="owner" list="owner-names" value="${esc(r.assignee_name || "")}" placeholder="Nobody yet" maxlength="80">
           <datalist id="owner-names">${names.map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
         </form>
-        ${!state.me || r.assignee_name !== state.me ? `<p class="owner-hint"><button class="link-btn" type="button" data-action="take">Assign to me</button></p>` : '<p class="owner-hint">You own this request.</p>'}
+        ${!state.me || r.assignee_name !== state.me ? `<p class="owner-hint"><button class="link-btn" type="button" data-action="take">Assign to Me</button></p>` : '<p class="owner-hint">You own this request.</p>'}
       </div>
       <div class="side-block">
         <h2>Bid date</h2>
@@ -351,9 +369,9 @@ function renderDetail() {
         </dl>
       </div>
       <div class="side-block side-actions">
-        <button class="btn btn--sm btn--ghost" type="button" data-action="copy-link">Copy link to this request</button>
-        <button class="btn btn--sm btn--ghost" type="button" data-action="unread">Mark as not opened</button>
-        ${r.status !== "spam" ? '<button class="btn btn--sm btn--ghost" type="button" data-status="spam">Move to spam</button>' : ""}
+        <button class="btn btn--sm btn--ghost" type="button" data-action="copy-link">Copy Link</button>
+        <button class="btn btn--sm btn--ghost" type="button" data-action="unread">Mark as Unread</button>
+        ${r.status !== "spam" ? '<button class="btn btn--sm btn--ghost" type="button" data-status="spam">Move to Spam</button>' : ""}
       </div>
     </aside>
   </div>`;
@@ -566,7 +584,7 @@ async function renderPdf(url, name) {
     const pages = document.createElement("div");
     pages.className = "viewer__pages";
     stage.replaceChildren(pages);
-    const width = Math.min(stage.clientWidth - 48, 1600) * viewer.zoom;
+    const width = Math.min(stage.clientWidth - 72, 1600) * viewer.zoom; // room for padding and the vertical scrollbar
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     for (let n = 1; n <= doc.numPages; n++) {
       const page = await doc.getPage(n);
@@ -621,7 +639,7 @@ document.addEventListener("click", (ev) => {
   else if (act === "copy-link" && r) copy(`${location.origin}${location.pathname}#${encodeURIComponent(r.reference)}`, "Link copied");
   else if (act === "unread" && r) {
     r.opened_at = null; rpc("admin_mark_opened", { p_id: r.id, p_opened: false }).catch(() => {});
-    toast(`${r.reference} marked as not opened`); state.selected = null;
+    toast(`${r.reference} marked as unread`); state.selected = null;
     history.replaceState(null, "", location.pathname + location.search); render();
   }
 });
