@@ -9,8 +9,8 @@
 <meta name="robots" content="noindex, nofollow">
 <script>document.documentElement.classList.add("js")</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/truss-ds.css?v=1795189479">
-<link rel="stylesheet" href="assets/styles.css?v=1795189479">
+<link rel="stylesheet" href="assets/truss-ds.css?v=1795190124">
+<link rel="stylesheet" href="assets/styles.css?v=1795190124">
 
 </head>
 <body>
@@ -36,7 +36,7 @@
 
 <section class="page-head"><div class="container">
   <p class="crumbs small"><a href="index.html">Home</a> / Submit plans</p>
-  <p class="vt-cota vt-cota--inicio">About 2 minutes · PDF or CAD</p>
+  <p class="eyebrow">About 2 minutes · PDF or CAD files</p>
   <h1 class="display-l" style="margin-top:24px">Submit plans for a quote</h1>
   <p class="subtitle">Upload your plan set and a few project details. Our estimating team reviews every submission.</p>
   <p class="small" style="margin-top:24px;color:var(--anno-fg)">Prototype state: sending</p>
@@ -44,32 +44,34 @@
 <section class="section" style="padding-top:var(--space-12)"><div class="container"><div class="form-layout">
 <form class="form-main" action="submit-plans-success.html" method="get" novalidate>
   
-  <fieldset class="fieldset"><legend><p class="vt-cota vt-cota--inicio">01 · You</p><span class="title">Your details</span></legend>
+  <fieldset class="fieldset"><legend><span class="fstep"><span class="fstep-n" aria-hidden="true">1</span><span class="step-text"><span class="title">Your details</span><span class="step-sub">Who we send the quote to.</span></span></span></legend>
     <div class="fields">
-      <div class="vt-field"><label class="vt-field__label" for="name">Full name</label><input class="vt-field__input" id="name" name="name" type="text" value="Jordan Ellis" required autocomplete="name"></div>
-      <div class="vt-field"><label class="vt-field__label" for="company">Company</label><input class="vt-field__input" id="company" name="company" type="text" value="Peachtree Builders LLC" required autocomplete="organization"></div>
-      <div class="vt-field"><label class="vt-field__label" for="email">Work email</label><input class="vt-field__input" id="email" name="email" type="email" value="jordan@peachtreebuilders.com" required aria-describedby="email-help" autocomplete="email"><p class="vt-field__help" id="email-help">Your submission reference is sent here.</p></div>
-      <div class="vt-field"><label class="vt-field__label" for="phone">Phone <span class="opt">(optional)</span></label><input class="vt-field__input" id="phone" name="phone" type="tel" value="(404) 555-0142" autocomplete="tel"></div>
+      <div class="vt-field"><label class="vt-field__label" for="name">Full name</label><input class="vt-field__input" id="name" name="name" type="text" value="Jordan Ellis" required autocomplete="name" placeholder="e.g. Jordan Ellis"></div>
+      <div class="vt-field"><label class="vt-field__label" for="company">Company</label><input class="vt-field__input" id="company" name="company" type="text" value="Peachtree Builders LLC" required autocomplete="organization" placeholder="e.g. Peachtree Builders LLC"></div>
+      <div class="vt-field"><label class="vt-field__label" for="email">Work email</label><input class="vt-field__input" id="email" name="email" type="email" value="jordan@peachtreebuilders.com" required aria-describedby="email-help" autocomplete="email" placeholder="name@company.com"><p class="vt-field__help" id="email-help">We send your reference and the quote here.</p></div>
+      <div class="vt-field"><label class="vt-field__label" for="phone">Phone <span class="opt">(optional)</span></label><input class="vt-field__input" id="phone" name="phone" type="tel" value="(404) 555-0142" aria-describedby="phone-help" autocomplete="tel" placeholder="(404) 555-0142"><p class="vt-field__help" id="phone-help">Only if you'd like a call back.</p></div>
     </div>
   </fieldset>
-  <fieldset class="fieldset"><legend><p class="vt-cota vt-cota--inicio">02 · Project</p><span class="title">Project</span></legend>
+  <fieldset class="fieldset"><legend><span class="fstep"><span class="fstep-n" aria-hidden="true">2</span><span class="step-text"><span class="title">Project</span><span class="step-sub">Helps us route your plans to the right estimator.</span></span></span></legend>
     <div class="fields">
-      <div class="vt-field"><label class="vt-field__label" for="ptype">Project type</label><select class="vt-field__input" id="ptype" name="ptype" required aria-describedby="ptype-help"><option value="">Choose one</option><option>Multifamily</option><option>Commercial</option><option selected>Build-to-Rent</option><option>Senior Living</option><option>Single-family</option><option>Other</option></select><p class="vt-field__help" id="ptype-help">Routes your plans to the right estimator.</p></div>
-      <div class="vt-field"><label class="vt-field__label" for="biddate">Bid or need-by date <span class="opt">(optional)</span></label><input class="vt-field__input" id="biddate" name="biddate" type="date" value="2027-01-15"></div>
-      <fieldset class="vt-field full" id="trusses-field" aria-describedby="trusses-help"><legend class="vt-field__label" style="margin-bottom:8px">Trusses needed</legend><div class="choice"><input type="radio" id="t-roof" name="trusses" value="roof"><label for="t-roof">Roof</label><input type="radio" id="t-floor" name="trusses" value="floor"><label for="t-floor">Floor</label><input type="radio" id="t-both" name="trusses" value="both" checked><label for="t-both">Roof + floor</label></div><p class="vt-field__help" id="trusses-help" hidden></p></fieldset>
-      <div class="vt-field full"><label class="vt-field__label" for="site">Job site: address, or city and ZIP</label><input class="vt-field__input" id="site" name="site" type="text" value="Hoschton, GA 30548" required aria-describedby="site-help"><p class="vt-field__help" id="site-help">City and ZIP is enough for a quote.</p></div>
+      <div class="vt-field"><label class="vt-field__label" for="ptype">Project type</label><select class="vt-field__input" id="ptype" name="ptype" required aria-describedby="ptype-help"><option value="">Choose the closest type</option><option>Multifamily</option><option>Commercial</option><option selected>Build-to-Rent</option><option>Senior Living</option><option>Single-family</option><option>Other</option></select><p class="vt-field__help" id="ptype-help">Not sure? Pick “Other” and explain in the notes.</p></div>
+      <div class="vt-field"><label class="vt-field__label" for="biddate">Bid or need-by date <span class="opt">(optional)</span></label><input class="vt-field__input" id="biddate" name="biddate" type="date" value="2027-01-15" aria-describedby="biddate-help"><p class="vt-field__help" id="biddate-help">When you need the quote. Leave empty if there's no date yet.</p></div>
+      <fieldset class="vt-field full" id="trusses-field" aria-describedby="trusses-help"><legend class="vt-field__label" style="margin-bottom:8px">Trusses needed</legend><div class="choice"><input type="radio" id="t-roof" name="trusses" value="roof"><label for="t-roof">Roof</label><input type="radio" id="t-floor" name="trusses" value="floor"><label for="t-floor">Floor</label><input type="radio" id="t-both" name="trusses" value="both" checked><label for="t-both">Roof + floor</label></div><p class="vt-field__help" id="trusses-help">Choose one.</p></fieldset>
+      <div class="vt-field full"><label class="vt-field__label" for="site">Job site</label><input class="vt-field__input" id="site" name="site" type="text" value="Hoschton, GA 30548" required aria-describedby="site-help" placeholder="e.g. Hoschton, GA 30548"><p class="vt-field__help" id="site-help">Full address, or just the city and ZIP.</p></div>
     </div>
   </fieldset>
-  <fieldset class="fieldset"><legend><p class="vt-cota vt-cota--inicio">03 · Plans</p><span class="title">Plans</span></legend>
-    <div class="dropzone" id="plans-drop"><p class="spec-s">PDF · DWG · DXF · ZIP · Up to 50 MB per file</p>
-  <p class="title" style="color:var(--ink)">Drag your plan set here</p>
-  <p>Add as many files as the project needs: architectural set, framing, site plan.</p>
-  <label class="vt-btn vt-btn--secondary" for="plans">Browse files</label>
+  <fieldset class="fieldset"><legend><span class="fstep"><span class="fstep-n" aria-hidden="true">3</span><span class="step-text"><span class="title">Plans</span><span class="step-sub">Upload the drawings we should quote from.</span></span></span></legend>
+    <div class="dropzone" id="plans-drop">
+  <span class="drop-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 14v4.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V14"/></svg></span>
+  <p class="title" style="color:var(--ink)">Drag your plan files here</p>
+  <p>Add everything the project needs: architectural set, framing, site plan.</p>
+  <label class="vt-btn vt-btn--secondary vt-btn--sm drop-btn" for="plans">Browse files</label>
+  <p class="drop-spec">PDF, DWG, DXF or ZIP · up to 50 MB each · up to 20 files</p>
   <input class="sr-only" id="plans" name="plans" type="file" multiple accept=".pdf,.dwg,.dxf,.zip"></div>
     
     
     <ul class="files"><li class="file"><div class="meta"><div class="top"><span class="name">Oakridge-BTR_Phase2_Arch-Set.pdf</span><span class="size">42.0 MB</span></div></div><div class="act"><span class="vt-tag" data-status="success">Uploaded</span><button class="icon-btn" type="button" aria-label="Remove Oakridge-BTR_Phase2_Arch-Set.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></li><li class="file"><div class="meta"><div class="top"><span class="name">Oakridge-BTR_Plan-A_Framing.dwg</span><span class="size">26.1 MB</span></div></div><div class="act"><span class="vt-tag" data-status="success">Uploaded</span><button class="icon-btn" type="button" aria-label="Remove Oakridge-BTR_Plan-A_Framing.dwg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></li></ul>
-    <div class="fields" style="margin-top:32px"><div class="vt-field full"><label class="vt-field__label" for="notes">Project notes <span class="opt">(optional)</span></label><textarea class="vt-field__input" id="notes" name="notes" aria-describedby="notes-help">Phase 2: 48 single-story rental homes, 3 repeating plans.</textarea><p class="vt-field__help" id="notes-help">Phases, repeating plans, special loads.</p></div></div>
+    <div class="fields" style="margin-top:32px"><div class="vt-field full"><label class="vt-field__label" for="notes">Project notes <span class="opt">(optional)</span></label><textarea class="vt-field__input" id="notes" name="notes" aria-describedby="notes-help" placeholder="e.g. Phase 2: 48 single-story rental homes, 3 repeating plans.">Phase 2: 48 single-story rental homes, 3 repeating plans.</textarea><p class="vt-field__help" id="notes-help">Anything that helps us quote: phases, repeating plans, special loads, deadlines.</p></div></div>
   </fieldset>
   <div class="fieldset" style="padding-top:32px">
     <div class="check" id="consent-field"><input type="checkbox" id="consent" name="consent" checked><label class="small" for="consent">I agree that Truss Tech may use my information to prepare this quote, as described in the <a href="#">Privacy Policy</a>.</label></div>
@@ -79,8 +81,8 @@
 <div class="form-aside">
   <section aria-labelledby="prog-title"><h2 class="label muted" id="prog-title" style="margin-bottom:12px">Your submission</h2>
     <ol class="form-progress" data-form-progress><li>01 · Your details</li><li>02 · Project</li><li>03 · Plans</li></ol>
-    <div class="form-bar" aria-hidden="true"><i></i></div><p class="spec muted" data-form-count aria-live="polite" style="margin-top:8px">0 of 3 sections complete</p></section>
-  <section aria-labelledby="next-title"><p class="vt-cota vt-cota--inicio">After you submit</p><h2 class="title" id="next-title" style="margin:16px 0 24px">What happens next</h2>
+    <p class="spec muted" data-form-count aria-live="polite" style="margin-top:12px">0 of 3 sections complete</p></section>
+  <section aria-labelledby="next-title"><h2 class="label muted" style="margin-bottom:8px">After you submit</h2><h2 class="title" id="next-title" style="margin:0 0 16px">What happens next</h2>
     <ol class="next-steps"><li><span class="n">01</span><strong>We receive your plans</strong><span>An email confirms it with your reference.</span></li>
     <li><span class="n">02</span><strong>Engineering review</strong><span>Our design team checks scope, spans and loads.</span></li>
     <li><span class="n">03</span><strong>Your quote</strong><span>Timing confirmed at quote.</span></li></ol></section>
@@ -102,7 +104,7 @@
 </div></footer>
 
 
-<script src="assets/site.js?v=1795189479" defer></script>
+<script src="assets/site.js?v=1795190124" defer></script>
 
 </body>
 </html>
