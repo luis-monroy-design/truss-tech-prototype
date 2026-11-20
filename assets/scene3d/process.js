@@ -10,7 +10,8 @@ export function start(section) {
   if (!host || steps.length < 4) return;
   section.classList.add("has-3d"); // show the canvas host before measuring it
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, premultipliedAlpha: true });
+  renderer.setClearColor(0x000000, 0);
   renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -31,7 +32,8 @@ export function start(section) {
   const table = new THREE.Group();
   const top = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.08, 3.6), new THREE.MeshStandardMaterial({ color: 0x2e2a23, roughness: 0.62, metalness: 0.05 })); top.position.y = -0.04; table.add(top);
   for (const [x, z] of [[-3, -1.6], [3, -1.6], [-3, 1.6], [3, 1.6]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.6, 0.1), M.steelDark); l.position.set(x, -0.88, z); table.add(l); }
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x1c1a14, roughness: 1 }));
+  // No visible floor: an invisible plane that only catches shadows, so the scene sits on the page background.
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.ShadowMaterial({ opacity: 0.45 }));
   floor.rotation.x = -Math.PI / 2; floor.position.y = -1.7; scene.add(table, floor);
   shadowAll(table); floor.receiveShadow = true;
 
@@ -59,10 +61,11 @@ export function start(section) {
   // 3 · production: stacked trusses next to the quote sheet
   const quote = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 1.2), new THREE.MeshStandardMaterial({ map: quoteTexture(), roughness: 0.85 }));
   quote.rotation.x = -Math.PI / 2; quote.receiveShadow = true; scene.add(quote);
-  const stack = [];
+  const stack = [], stackRoot = new THREE.Group();
+  stackRoot.position.set(2.2, 0, -0.15); stackRoot.rotation.y = Math.PI / 2; scene.add(stackRoot); // laid along the table
   for (let i = 0; i < 7; i++) {
     const g = new THREE.Group(); g.add(new THREE.Mesh(T.wood, i % 2 ? M.wood2 : M.wood), new THREE.Mesh(T.steel, M.plate));
-    g.rotation.x = -Math.PI / 2; shadowAll(g); scene.add(g); stack.push(g);
+    g.rotation.x = -Math.PI / 2; shadowAll(g); stackRoot.add(g); stack.push(g);
   }
 
   // 4 · flatbed with the bundle
@@ -80,15 +83,13 @@ export function start(section) {
   for (let i = 0; i < 6; i++) { const g = new THREE.Group(); g.add(new THREE.Mesh(T.wood, i % 2 ? M.wood2 : M.wood), new THREE.Mesh(T.steel, M.plate)); g.position.z = (i - 2.5) * 0.12; bundle.add(g); }
   bundle.scale.setScalar(1.25); bundle.position.set(-0.4, 0.66, 0); truck.add(bundle);
   shadowAll(truck); scene.add(truck);
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(40, 2.6), new THREE.MeshStandardMaterial({ color: 0x2b2a27, roughness: 0.95 }));
-  road.rotation.x = -Math.PI / 2; road.position.set(0, -1.69, 3.6); road.receiveShadow = true; scene.add(road);
 
   // camera poses per step (position, target)
   const poses = [
-    [[-0.5, 3.9, 2.5], [-0.7, 0, -0.1]],
-    [[-0.2, 1.55, 4.5], [-0.7, 0.55, -0.1]],
-    [[2.9, 3.6, 4.0], [0.7, 0.1, -0.05]],
-    [[1.6, 1.0, 12.4], [0.7, -1.05, 3.6]],
+    [[-0.55, 4.6, 2.9], [-0.7, 0, -0.1]],
+    [[-0.25, 1.9, 5.9], [-0.7, 0.5, -0.1]],
+    [[3.2, 4.4, 5.0], [0.75, 0.1, 0.05]],
+    [[1.9, 1.4, 15.2], [0.9, -1.0, 3.6]],
   ];
   const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
 
@@ -109,19 +110,18 @@ export function start(section) {
     arrows.children.forEach((ar, i) => { const d = clamp01((b - 0.3 - i * 0.05) / 0.3); ar.visible = d > 0 && wood < 1; const yTop = rise * (1 - Math.abs(ar.userData.x) / half); ar.position.set(ar.userData.x, yTop + 0.55 - 0.15 * ease.outCubic(d), 0); });
     // 3 · quote slides in, trusses stack
     const c = s(2);
-    quote.position.set(lerp(3.8, 1.85, ease.outCubic(clamp01(c * 2))), 0.004, 0.75); quote.visible = c > 0 && P < 3.6;
-    stack.forEach((g, i) => { const d = clamp01((c - 0.2 - i * 0.09) / 0.25); g.visible = d > 0 && P < 3.6; g.position.set(1.4, 0.02 + i * 0.045 + (1 - ease.outCubic(d)) * 0.8, -0.95); g.rotation.z = (1 - d) * 0.3; });
+    quote.position.set(lerp(3.8, 1.05, ease.outCubic(clamp01(c * 2))), 0.006, 1.05); quote.visible = c > 0;
+    stack.forEach((g, i) => { const d = clamp01((c - 0.2 - i * 0.09) / 0.25); g.visible = d > 0; g.position.set(0, 0.02 + i * 0.045 + (1 - ease.outCubic(d)) * 0.8, 0); g.rotation.z = (1 - d) * 0.3; });
     // 4 · flatbed drives in, then out
     const d = s(3);
     const xTruck = d < 0.75 ? lerp(-9, 0.2, ease.outCubic(d / 0.75)) : lerp(0.2, 1.6, ease.inOutCubic((d - 0.75) / 0.25));
     truck.position.set(xTruck, -1.69, 3.6); truck.visible = d > 0;
     wheels.forEach((w) => { w.rotation.y = -xTruck / 0.3; });
     // camera
-    // hold each pose for most of its step, travel to the next one at the end
-    const k = Math.min(3, Math.floor(P)), f = ease.inOutCubic(clamp01((P - k - 0.62) / 0.38)), n = Math.min(3, k + 1);
-    const blend = P >= 3 ? 0 : f;
-    tmpP.fromArray(poses[k][0]).lerp(new THREE.Vector3().fromArray(poses[n][0]), blend);
-    tmpT.fromArray(poses[k][1]).lerp(new THREE.Vector3().fromArray(poses[n][1]), blend);
+    // each step moves the camera to its own pose as it begins, in sync with the step text
+    const k = Math.min(3, Math.floor(P)), prev = Math.max(0, k - 1), f = k === 0 ? 1 : ease.inOutCubic(clamp01((P - k) / 0.35));
+    tmpP.fromArray(poses[prev][0]).lerp(new THREE.Vector3().fromArray(poses[k][0]), f);
+    tmpT.fromArray(poses[prev][1]).lerp(new THREE.Vector3().fromArray(poses[k][1]), f);
     camera.position.copy(tmpP); camera.lookAt(tmpT);
   }
 
