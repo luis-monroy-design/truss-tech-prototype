@@ -37,6 +37,7 @@ const isPhone = () => matchMedia("(max-width: 860px)").matches;
 const state = {
   rows: [], loaded: false, error: null, filter: "all", q: "", sort: store.get("tt-admin-sort") || "received",
   selected: null, me: store.get("tt-admin-name") || "", drafts: {}, syncedAt: null,
+  auto: store.get("tt-admin-auto") !== "off",
 };
 
 // ---------- API ----------
@@ -663,11 +664,54 @@ $("#refresh").addEventListener("click", () => load());
 $("#export").addEventListener("click", exportCsv);
 $("#me").addEventListener("click", askName);
 $("[data-dialog-cancel]").addEventListener("click", () => $("#ask-name").close("cancel"));
-$("#reset-demo").addEventListener("click", async () => {
+async function resetDemo() {
   if (!confirm("Reset the 3 test requests to how they started? Status changes and notes made in the preview will be removed.")) return;
   try { await rpc("reset_demo_data", {}); state.drafts = {}; await load(); toast("Test data reset"); }
   catch (e) { toast(e.message); }
+}
+$("#reset-demo").addEventListener("click", resetDemo);
+
+// ---------- Settings (saved per browser) ----------
+const settings = $("#settings");
+const root = document.documentElement;
+function applyTheme(t) {
+  if (t === "light" || t === "dark") root.dataset.theme = t; else delete root.dataset.theme;
+  store.set("tt-admin-theme", t);
+}
+function applyDensity(d) {
+  if (d === "compact") root.dataset.density = "compact"; else delete root.dataset.density;
+  store.set("tt-admin-density", d);
+}
+function openSettings() {
+  settings.querySelector(`input[name="theme"][value="${root.dataset.theme || "auto"}"]`).checked = true;
+  settings.querySelector(`input[name="density"][value="${root.dataset.density || "comfortable"}"]`).checked = true;
+  $("#settings-name").value = state.me;
+  $("#settings-sort").value = state.sort;
+  $("#settings-auto").checked = state.auto;
+  settings.showModal();
+  settings.querySelector("input[name=theme]:checked").focus();
+}
+function setName(v) {
+  const name = v.trim().slice(0, 80);
+  if (name === state.me) return;
+  state.me = name; store.set("tt-admin-name", name); render({ keepDetail: !!document.activeElement?.closest?.("#detail") });
+  renderMe();
+}
+$("#open-settings").addEventListener("click", openSettings);
+settings.addEventListener("click", (e) => {
+  if (e.target === settings || e.target.closest("[data-settings-close]")) settings.close();
 });
+settings.addEventListener("change", (e) => {
+  const t = e.target;
+  if (t.name === "theme") { applyTheme(t.value); toast(`Appearance: ${t.value === "auto" ? "Automatic" : t.value === "light" ? "Light" : "Dark"}`); }
+  else if (t.name === "density") applyDensity(t.value);
+  else if (t.id === "settings-name") setName(t.value);
+  else if (t.id === "settings-sort") { state.sort = t.value; $("#sort").value = t.value; store.set("tt-admin-sort", t.value); render({ keepDetail: true }); }
+  else if (t.id === "settings-auto") { state.auto = t.checked; store.set("tt-admin-auto", t.checked ? "on" : "off"); }
+});
+settings.addEventListener("close", () => { const v = $("#settings-name").value; if (v.trim() !== state.me) setName(v); });
+$("#settings-reset").addEventListener("click", () => { settings.close(); resetDemo(); });
+document.querySelectorAll(".mod-key").forEach((k) => { k.textContent = MOD; });
 
 document.addEventListener("keydown", (ev) => {
   if (!$("#viewer").hidden) {
@@ -681,7 +725,7 @@ document.addEventListener("keydown", (ev) => {
   }
   const el = document.activeElement;
   if (el?.id === "note" && ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); el.form.requestSubmit(); return; }
-  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName) || $("#ask-name").open;
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName) || $("#ask-name").open || settings.open;
   if (typing) { if (ev.key === "Escape" && el?.id === "q" && el.value) { el.value = ""; state.q = ""; render({ keepDetail: true }); } return; }
   if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
   if (ev.key === "/") { ev.preventDefault(); $("#q").focus(); return; }
@@ -699,8 +743,8 @@ document.addEventListener("keydown", (ev) => {
 });
 
 window.addEventListener("hashchange", fromHash);
-document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - (state.syncedAt || 0) > 30000) load({ quiet: true }); });
-setInterval(() => { if (!document.hidden) load({ quiet: true }); }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && state.auto && Date.now() - (state.syncedAt || 0) > 30000) load({ quiet: true }); });
+setInterval(() => { if (!document.hidden && state.auto) load({ quiet: true }); }, 60000);
 setInterval(renderSync, 30000);
 
 state.selected = decodeURIComponent(location.hash.slice(1)) || null;
