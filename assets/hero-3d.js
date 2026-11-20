@@ -1,4 +1,4 @@
-// Loads the WebGL scenes (hero + process). Without WebGL 2, or if loading fails, the line drawings stay:
+// Loads the WebGL scenes (hero, market cards, process). Without WebGL 2, or if loading fails, the line drawings stay:
 // the hero falls back to truss-scene.js and the process keeps its scroll-drawn SVG.
 const hero = document.querySelector(".hero");
 const proc = document.querySelector("[data-process]");
@@ -13,6 +13,15 @@ if (!gl2) fallback();
 else {
   if (hero && hero.querySelector("[data-hero-3d]")) {
     import("./scene3d/hero.js").then((m) => m.start(hero)).catch((e) => { console.warn("3D hero unavailable:", e); fallback(); });
+  }
+  const bento = document.querySelector(".bento");
+  if (bento && bento.querySelector("[data-market]")) {
+    const io = new IntersectionObserver(([en]) => {
+      if (!en.isIntersecting) return;
+      io.disconnect();
+      import("./scene3d/markets.js").then((m) => m.start(bento)).catch((e) => console.warn("3D markets unavailable:", e));
+    }, { rootMargin: "500px 0px" });
+    io.observe(bento);
   }
   if (proc && proc.querySelector("[data-proc-3d]")) {
     // Load the process scene only when it is about to be seen.

@@ -620,3 +620,10 @@ fieldset { border:0; margin:0; padding:0; min-width:0; }
 .has-3d .proc-3d { display:block; }
 .has-3d .proc-scene svg { display:none; }
 @media (max-width: 720px) { .has-3d .proc-3d { max-width:100%; height:min(27vh, 240px); aspect-ratio:auto; margin:0 auto; } }
+/* ---------- Market cards 3D ---------- */
+.ill3d { position:relative; flex:1; min-height:150px; margin:0 calc(-1 * var(--space-4)); }
+.b-a .ill3d, .b-b .ill3d { min-height:260px; }
+.ill3d .ill { display:block; margin:0 auto; }
+.ill3d__canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.bento.has-3d .ill3d .ill { visibility:hidden; }
+@media (max-width: 720px) { .ill3d { min-height:180px; } .b-a .ill3d, .b-b .ill3d { min-height:220px; } }

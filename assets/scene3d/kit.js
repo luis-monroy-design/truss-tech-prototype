@@ -5,7 +5,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
-export { THREE };
+export { THREE, mergeGeometries };
 
 // ---------------------------------------------------------------- random (seeded, stable look)
 export function rng(seed = 1) {
@@ -289,6 +289,14 @@ export function metalReflections(renderer, M, intensity = 0.7) {
   for (const k of ["plate", "steelDark"]) { M[k].envMap = env; M[k].envMapIntensity = intensity; M[k].needsUpdate = true; }
   pmrem.dispose();
   return env;
+}
+
+// Real-size texture mapping on a BoxGeometry: one texture tile = `unit` meters on every face.
+export function boxUV(geo, unit = 1.22) {
+  const { width: w, height: h, depth: d } = geo.parameters, uv = geo.attributes.uv;
+  const dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]]; // px nx py ny pz nz
+  for (let f = 0; f < 6; f++) for (let i = 0; i < 4; i++) { const k = f * 4 + i; uv.setXY(k, uv.getX(k) * dims[f][0] / unit, uv.getY(k) * dims[f][1] / unit); }
+  return geo;
 }
 
 export function shadowAll(obj, cast = true, receive = true) {
