@@ -73,6 +73,7 @@ async function load({ quiet = false } = {}) {
   btn.classList.add("is-spinning");
   try {
     const rows = await api("/quote_requests?select=*,plan_files(*),quote_events(*)&order=created_at.desc&plan_files.order=created_at.asc&quote_events.order=created_at.asc");
+    await signFiles(rows);
     state.rows = rows; state.error = null; state.loaded = true; state.syncedAt = Date.now();
   } catch (e) {
     state.error = e.message; state.loaded = true;
@@ -248,7 +249,21 @@ function fileLinks(f) {
     return { view: url, download: url, canPreview: /\.pdf$/i.test(f.file_name) };
   }
   if (f.storage === "sharepoint" && f.web_url) return { view: f.web_url, download: f.web_url, external: true, canPreview: false };
+  if (f.storage === "supabase" && f.signed_url) {
+    const sep = f.signed_url.includes("?") ? "&" : "?";
+    return { view: f.signed_url, download: `${f.signed_url}${sep}download=${encodeURIComponent(f.file_name)}`, canPreview: /\.pdf$/i.test(f.file_name) };
+  }
   return null;
+}
+
+// Plans kept in Supabase Storage are private: staff get short-lived links (1 hour), refreshed on every load.
+async function signFiles(rows) {
+  const files = rows.flatMap((r) => r.plan_files || []).filter((f) => f.storage === "supabase");
+  if (!files.length) return;
+  const { data, error } = await sb.storage.from("plan-files").createSignedUrls(files.map((f) => f.storage_path), 3600);
+  if (error) { console.warn("signed urls", error.message); return; }
+  const byPath = new Map((data || []).filter((d) => d.signedUrl).map((d) => [d.path, d.signedUrl]));
+  files.forEach((f) => { f.signed_url = byPath.get(f.storage_path) || null; });
 }
 
 function overviewHTML() {

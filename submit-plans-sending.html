@@ -9,8 +9,9 @@
 <meta name="robots" content="noindex, nofollow">
 <script>document.documentElement.classList.add("js")</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/truss-ds.css?v=1795186819">
-<link rel="stylesheet" href="assets/styles.css?v=1795186819">
+<link rel="stylesheet" href="assets/truss-ds.css?v=1795188257">
+<link rel="stylesheet" href="assets/styles.css?v=1795188257">
+
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -55,23 +56,25 @@
     <div class="fields">
       <div class="vt-field"><label class="vt-field__label" for="ptype">Project type</label><select class="vt-field__input" id="ptype" name="ptype" required aria-describedby="ptype-help"><option value="">Choose one</option><option>Multifamily</option><option>Commercial</option><option selected>Build-to-Rent</option><option>Senior Living</option><option>Single-family</option><option>Other</option></select><p class="vt-field__help" id="ptype-help">Routes your plans to the right estimator.</p></div>
       <div class="vt-field"><label class="vt-field__label" for="biddate">Bid or need-by date <span class="opt">(optional)</span></label><input class="vt-field__input" id="biddate" name="biddate" type="date" value="2027-01-15"></div>
-      <fieldset class="vt-field full"><legend class="vt-field__label" style="margin-bottom:8px">Trusses needed</legend><div class="choice"><input type="radio" id="t-roof" name="trusses" value="roof"><label for="t-roof">Roof</label><input type="radio" id="t-floor" name="trusses" value="floor"><label for="t-floor">Floor</label><input type="radio" id="t-both" name="trusses" value="both" checked><label for="t-both">Roof + floor</label></div></fieldset>
+      <fieldset class="vt-field full" id="trusses-field" aria-describedby="trusses-help"><legend class="vt-field__label" style="margin-bottom:8px">Trusses needed</legend><div class="choice"><input type="radio" id="t-roof" name="trusses" value="roof"><label for="t-roof">Roof</label><input type="radio" id="t-floor" name="trusses" value="floor"><label for="t-floor">Floor</label><input type="radio" id="t-both" name="trusses" value="both" checked><label for="t-both">Roof + floor</label></div><p class="vt-field__help" id="trusses-help" hidden></p></fieldset>
       <div class="vt-field full"><label class="vt-field__label" for="site">Job site: address, or city and ZIP</label><input class="vt-field__input" id="site" name="site" type="text" value="Hoschton, GA 30548" required aria-describedby="site-help"><p class="vt-field__help" id="site-help">City and ZIP is enough for a quote.</p></div>
     </div>
   </fieldset>
   <fieldset class="fieldset"><legend><p class="vt-cota vt-cota--inicio">03 · Plans</p><span class="title">Plans</span></legend>
-    <div class="dropzone" id="plans-drop"><p class="spec-s">PDF · DWG · DXF · ZIP · Max size TBC</p>
+    <div class="dropzone" id="plans-drop"><p class="spec-s">PDF · DWG · DXF · ZIP · Up to 50 MB per file</p>
   <p class="title" style="color:var(--ink)">Drag your plan set here</p>
   <p>Add as many files as the project needs: architectural set, framing, site plan.</p>
   <label class="vt-btn vt-btn--secondary" for="plans">Browse files</label>
   <input class="sr-only" id="plans" name="plans" type="file" multiple accept=".pdf,.dwg,.dxf,.zip"></div>
     
+    
     <ul class="files"><li class="file"><div class="meta"><div class="top"><span class="name">Oakridge-BTR_Phase2_Arch-Set.pdf</span><span class="size">42.0 MB</span></div></div><div class="act"><span class="vt-tag" data-status="success">Uploaded</span><button class="icon-btn" type="button" aria-label="Remove Oakridge-BTR_Phase2_Arch-Set.pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></li><li class="file"><div class="meta"><div class="top"><span class="name">Oakridge-BTR_Plan-A_Framing.dwg</span><span class="size">26.1 MB</span></div></div><div class="act"><span class="vt-tag" data-status="success">Uploaded</span><button class="icon-btn" type="button" aria-label="Remove Oakridge-BTR_Plan-A_Framing.dwg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></li></ul>
     <div class="fields" style="margin-top:32px"><div class="vt-field full"><label class="vt-field__label" for="notes">Project notes <span class="opt">(optional)</span></label><textarea class="vt-field__input" id="notes" name="notes" aria-describedby="notes-help">Phase 2: 48 single-story rental homes, 3 repeating plans.</textarea><p class="vt-field__help" id="notes-help">Phases, repeating plans, special loads.</p></div></div>
   </fieldset>
   <div class="fieldset" style="padding-top:32px">
-    <div class="check"><input type="checkbox" id="consent" name="consent" checked><label class="small" for="consent">I agree that Truss Tech may use my information to prepare this quote, as described in the <a href="#">Privacy Policy</a>.</label></div>
+    <div class="check" id="consent-field"><input type="checkbox" id="consent" name="consent" checked><label class="small" for="consent">I agree that Truss Tech may use my information to prepare this quote, as described in the <a href="#">Privacy Policy</a>.</label></div>
   </div>
+  
   <div class="submit-row"><button class="vt-btn vt-btn--primary is-busy" type="button" aria-live="polite"><span class="spinner" aria-hidden="true"></span>Submitting plans</button><p class="small">Your files go to the Truss Tech estimating team. <span class="vt-tag ph-tag">Inbox owner TBC</span></p></div>
 </form>
 <div class="form-aside">
@@ -100,6 +103,7 @@
 </div></footer>
 
 
-<script src="assets/site.js?v=1795186819" defer></script>
+<script src="assets/site.js?v=1795188257" defer></script>
+
 </body>
 </html>

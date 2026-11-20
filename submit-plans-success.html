@@ -9,8 +9,9 @@
 <meta name="robots" content="noindex, nofollow">
 <script>document.documentElement.classList.add("js")</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/truss-ds.css?v=1795186819">
-<link rel="stylesheet" href="assets/styles.css?v=1795186819">
+<link rel="stylesheet" href="assets/truss-ds.css?v=1795188257">
+<link rel="stylesheet" href="assets/styles.css?v=1795188257">
+
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -33,20 +34,20 @@
 </header>
 <main id="main">
 
-<section class="section"><div class="container"><div class="success">
+<section class="section"><div class="container"><div class="success" data-success>
   <p class="crumbs small"><a href="index.html">Home</a> / Submit plans / Received</p>
-  <p class="vt-cota vt-cota--inicio">Received · 2 files · 68.1 MB</p>
+  <div data-s="cota"><p class="vt-cota vt-cota--inicio">Received · 2 files · 68.1 MB</p></div>
   <h1 class="display-l" tabindex="-1" style="margin-top:24px">Your plans are in</h1>
-  <p class="subtitle muted" style="margin-top:24px">Thank you, Jordan. A confirmation with a copy of what you sent is on its way to jordan@peachtreebuilders.com.</p>
-  <div class="ref"><span class="label muted">Reference</span><span class="spec" style="font-size:18px">TT-2026-00184</span></div>
+  <p class="subtitle muted" style="margin-top:24px" data-s="thanks">Thank you, Jordan. A confirmation with a copy of what you sent is on its way to jordan@peachtreebuilders.com.</p>
+  <div class="ref"><span class="label muted">Reference</span><span class="spec" style="font-size:18px" data-s="ref">TT-2026-00184</span></div>
   <h2 class="title" style="margin-top:64px">What happens next</h2>
   <ol class="timeline">
-    <li><span class="dot done"></span><h3>Plans received</h3><p>Oakridge BTR Phase 2 · Build-to-Rent · Hoschton, GA</p><span class="when spec-s muted">Today</span></li>
+    <li><span class="dot done"></span><h3>Plans received</h3><p data-s="project">Oakridge BTR Phase 2 · Build-to-Rent · Hoschton, GA</p><span class="when spec-s muted">Today</span></li>
     <li><span class="dot"></span><h3>Engineering review</h3><p>Our design team reviews scope, spans and loads, and contacts you if anything is unclear.</p><span class="when spec-s muted">Timing confirmed at quote</span></li>
     <li><span class="dot"></span><h3>Your quote</h3><p>Scope and assumptions for your bid.</p><span class="when spec-s muted">Timing confirmed at quote</span></li>
   </ol>
   <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:center;margin-top:16px"><a class="vt-btn vt-btn--ink" href="submit-plans.html">Submit another project</a><a class="vt-btn vt-btn--quiet" href="index.html">Back to home</a></div>
-  <div style="margin-top:48px"><aside class="anno" aria-label="Design note"><b>Confirmation</b>Reference and auto-confirmation email come from the form service (to be chosen); the same content reaches the monitored inbox.</aside></div>
+  <div style="margin-top:48px"><aside class="anno" aria-label="Design note"><b>Confirmation</b>Reference and confirmation email come from the Truss Tech backend (Supabase). During the test phase emails are sent from a temporary address; they move to a Truss Tech mailbox before launch.</aside></div>
 </div></div></section>
 </main>
 
@@ -62,6 +63,7 @@
 </div></footer>
 
 
-<script src="assets/site.js?v=1795186819" defer></script>
+<script src="assets/site.js?v=1795188257" defer></script>
+<script type="module" src="assets/submit.js?v=1795188257"></script>
 </body>
 </html>
