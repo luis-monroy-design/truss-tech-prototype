@@ -1,11 +1,21 @@
 // Truss Tech · Quote requests admin.
-// Reads and writes through Supabase (PostgREST). In preview mode (no sign-in yet) the database only
-// returns test rows (is_demo) and only lets anyone change those; real requests need a signed-in staff
-// member. When sign-in exists, pass the user's access token in `authHeader()` and nothing else changes.
+// Sign-in with Supabase Auth (email + password). Data is read and written through Supabase (PostgREST)
+// with the signed-in user's token; the database only answers to people listed in staff_members.
 
-const API = "https://sqnnvmdsidgcxfppscao.supabase.co/rest/v1";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm";
+
+const BASE = "https://sqnnvmdsidgcxfppscao.supabase.co";
+const API = BASE + "/rest/v1";
 const KEY = "sb_publishable__m3o11fBcxJeWI6x9SjIYg_CMNNnsLA"; // public by design
-const authHeader = () => ({}); // later: { Authorization: `Bearer ${session.access_token}` }
+// Read the URL before the auth client consumes it: password-reset links land here with #...type=recovery.
+const START_HASH = location.hash;
+const RECOVERY_LINK = /type=recovery/.test(START_HASH);
+const LINK_ERROR = /error_code=|error=/.test(START_HASH);
+const sb = createClient(BASE, KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "implicit", storageKey: "tt-admin-session" },
+});
+let session = null;
+const authHeader = () => (session ? { Authorization: `Bearer ${session.access_token}` } : {});
 
 const STATUSES = [
   { id: "new", label: "New" },
@@ -36,7 +46,7 @@ const isPhone = () => matchMedia("(max-width: 860px)").matches;
 
 const state = {
   rows: [], loaded: false, error: null, filter: "all", q: "", sort: store.get("tt-admin-sort") || "received",
-  selected: null, me: store.get("tt-admin-name") || "", drafts: {}, syncedAt: null,
+  selected: null, me: "", role: null, email: "", staff: [], drafts: {}, syncedAt: null,
   auto: store.get("tt-admin-auto") !== "off",
 };
 
@@ -52,6 +62,7 @@ async function api(path, { method = "GET", body } = {}) {
   } catch { throw new Error("You seem to be offline. Check your connection and try again."); }
   const text = await r.text();
   const data = text ? JSON.parse(text) : null;
+  if (r.status === 401 && session) { sessionEnded(); throw new Error("Your session has ended. Please sign in again."); }
   if (!r.ok) throw new Error(data?.message === "not_allowed" ? "You don't have permission to change this request." : "Something went wrong. Please try again.");
   return data;
 }
@@ -264,7 +275,7 @@ function renderDetail() {
   if (!events.some((e) => e.kind === "received")) events.unshift({ kind: "received", created_at: r.created_at, meta: { files: files.length } });
   events.sort((a, b) => b.created_at.localeCompare(a.created_at));
   const next = NEXT[r.status];
-  const names = [...new Set([state.me, ...state.rows.map((x) => x.assignee_name)].filter(Boolean))];
+  const names = [...new Set([state.me, ...state.staff, ...state.rows.map((x) => x.assignee_name)].filter(Boolean))];
   const previewable = files.filter((f) => fileLinks(f)?.canPreview).length;
   const mailto = `mailto:${encodeURIComponent(r.email)}?subject=${encodeURIComponent(`Your quote request ${r.reference}`)}&body=${encodeURIComponent(`Hi ${r.full_name.split(" ")[0]},\n\n`)}`;
   const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.job_site)}`;
@@ -384,9 +395,7 @@ function renderSync() {
   $("#sync").textContent = s < 60 ? "Updated just now" : `Updated ${Math.floor(s / 60)} min ago`;
 }
 function renderMe() {
-  $("#me").innerHTML = state.me
-    ? `<span class="avatar">${esc(initials(state.me))}</span><span>${esc(state.me)}</span>`
-    : '<span class="avatar avatar--muted">?</span><span>Set your name</span>';
+  $("#me").innerHTML = `<span class="avatar">${esc(initials(state.me))}</span><span>${esc(state.me || "Account")}</span>`;
 }
 // background: true for automatic refreshes, which must not wipe what someone is typing in the detail pane.
 function render({ keepDetail = false, background = false } = {}) {
@@ -417,8 +426,10 @@ function select(ref, { push = true } = {}) {
     }
   }
 }
+const hashRef = () => (location.hash.includes("=") ? "" : decodeURIComponent(location.hash.slice(1)));
 function fromHash() {
-  const ref = decodeURIComponent(location.hash.slice(1));
+  if (!session) return;
+  const ref = hashRef();
   if (ref !== (state.selected || "")) select(ref || null, { push: false });
 }
 function back() {
@@ -427,21 +438,9 @@ function back() {
   requestAnimationFrame(() => $(`.row[data-ref="${CSS.escape(state.lastRef || "")}"]`)?.focus());
 }
 
-// ---------- Name ----------
-function askName() {
-  const dlg = $("#ask-name"), input = $("#ask-name-input");
-  input.value = state.me;
-  return new Promise((resolve) => {
-    dlg.onclose = () => {
-      const v = input.value.trim();
-      if (dlg.returnValue === "ok" && v) { state.me = v.slice(0, 80); store.set("tt-admin-name", state.me); renderMe(); resolve(state.me); }
-      else resolve(null);
-    };
-    dlg.returnValue = "";
-    dlg.showModal(); input.focus(); input.select();
-  });
-}
-async function me() { return state.me || (await askName()); }
+// ---------- Author ----------
+// The database records the signed-in person's name; this is only for the optimistic UI.
+async function me() { return state.me || "You"; }
 
 // ---------- Actions ----------
 let toastTimer;
@@ -662,14 +661,12 @@ $("#sort").value = state.sort;
 $("#sort").addEventListener("change", (e) => { state.sort = e.target.value; store.set("tt-admin-sort", state.sort); render({ keepDetail: true }); });
 $("#refresh").addEventListener("click", () => load());
 $("#export").addEventListener("click", exportCsv);
-$("#me").addEventListener("click", askName);
-$("[data-dialog-cancel]").addEventListener("click", () => $("#ask-name").close("cancel"));
+$("#me").addEventListener("click", () => openSettings());
 async function resetDemo() {
-  if (!confirm("Reset the 3 test requests to how they started? Status changes and notes made in the preview will be removed.")) return;
-  try { await rpc("reset_demo_data", {}); state.drafts = {}; await load(); toast("Test data reset"); }
+  if (!confirm("Reset the 3 test requests to how they started? Status changes and notes made on them will be removed.")) return;
+  try { await rpc("reset_demo_data_guarded", {}); state.drafts = {}; await load(); toast("Test data reset"); }
   catch (e) { toast(e.message); }
 }
-$("#reset-demo").addEventListener("click", resetDemo);
 
 // ---------- Settings (saved per browser) ----------
 const settings = $("#settings");
@@ -685,17 +682,16 @@ function applyDensity(d) {
 function openSettings() {
   settings.querySelector(`input[name="theme"][value="${root.dataset.theme || "auto"}"]`).checked = true;
   settings.querySelector(`input[name="density"][value="${root.dataset.density || "comfortable"}"]`).checked = true;
-  $("#settings-name").value = state.me;
+  $("#acct-avatar").textContent = initials(state.me);
+  $("#acct-name").textContent = state.me;
+  $("#acct-email").textContent = state.email;
+  $("#acct-role").textContent = { admin: "Admin", estimator: "Estimator", viewer: "Viewer" }[state.role] || "";
+  $("#settings-test").hidden = !["admin", "estimator"].includes(state.role);
+  closePwForm();
   $("#settings-sort").value = state.sort;
   $("#settings-auto").checked = state.auto;
   settings.showModal();
   settings.querySelector("input[name=theme]:checked").focus();
-}
-function setName(v) {
-  const name = v.trim().slice(0, 80);
-  if (name === state.me) return;
-  state.me = name; store.set("tt-admin-name", name); render({ keepDetail: !!document.activeElement?.closest?.("#detail") });
-  renderMe();
 }
 $("#open-settings").addEventListener("click", openSettings);
 settings.addEventListener("click", (e) => {
@@ -705,11 +701,9 @@ settings.addEventListener("change", (e) => {
   const t = e.target;
   if (t.name === "theme") { applyTheme(t.value); toast(`Appearance: ${t.value === "auto" ? "Automatic" : t.value === "light" ? "Light" : "Dark"}`); }
   else if (t.name === "density") applyDensity(t.value);
-  else if (t.id === "settings-name") setName(t.value);
   else if (t.id === "settings-sort") { state.sort = t.value; $("#sort").value = t.value; store.set("tt-admin-sort", t.value); render({ keepDetail: true }); }
   else if (t.id === "settings-auto") { state.auto = t.checked; store.set("tt-admin-auto", t.checked ? "on" : "off"); }
 });
-settings.addEventListener("close", () => { const v = $("#settings-name").value; if (v.trim() !== state.me) setName(v); });
 $("#settings-reset").addEventListener("click", () => { settings.close(); resetDemo(); });
 document.querySelectorAll(".mod-key").forEach((k) => { k.textContent = MOD; });
 
@@ -725,7 +719,7 @@ document.addEventListener("keydown", (ev) => {
   }
   const el = document.activeElement;
   if (el?.id === "note" && ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); el.form.requestSubmit(); return; }
-  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName) || $("#ask-name").open || settings.open;
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(el?.tagName) || settings.open || document.body.classList.contains("is-locked");
   if (typing) { if (ev.key === "Escape" && el?.id === "q" && el.value) { el.value = ""; state.q = ""; render({ keepDetail: true }); } return; }
   if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
   if (ev.key === "/") { ev.preventDefault(); $("#q").focus(); return; }
@@ -743,10 +737,251 @@ document.addEventListener("keydown", (ev) => {
 });
 
 window.addEventListener("hashchange", fromHash);
-document.addEventListener("visibilitychange", () => { if (!document.hidden && state.auto && Date.now() - (state.syncedAt || 0) > 30000) load({ quiet: true }); });
-setInterval(() => { if (!document.hidden && state.auto) load({ quiet: true }); }, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden && state.auto && session && state.me && Date.now() - (state.syncedAt || 0) > 30000) load({ quiet: true }); });
+setInterval(() => { if (!document.hidden && state.auto && session && state.me) load({ quiet: true }); }, 60000);
 setInterval(renderSync, 30000);
 
-state.selected = decodeURIComponent(location.hash.slice(1)) || null;
-render();
-load().then(() => { if (state.selected && !current()) { state.selected = null; render(); } else if (current()) select(state.selected, { push: false }); });
+// ---------- Sign-in ----------
+const gate = $("#gate");
+const ICONS = {
+  mark: '<svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 24 16 6l12 18H4Z"/><path d="M10 24l6-9 6 9M16 6v18"/></svg>',
+  eye: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10s3-5.5 8-5.5S18 10 18 10s-3 5.5-8 5.5S2 10 2 10Z"/><circle cx="10" cy="10" r="2.5"/></svg>',
+  eyeOff: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3l14 14M8.2 5a8 8 0 0 1 1.8-.5c5 0 8 5.5 8 5.5a14 14 0 0 1-2.4 3M12 15.2a7 7 0 0 1-2 .3c-5 0-8-5.5-8-5.5a14 14 0 0 1 3.3-3.8"/></svg>',
+  alert: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 6v5M10 13.8v.1"/></svg>',
+  info: '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5M10 6.2v.1"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg>',
+  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>',
+  person: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1.2-3.8 4.2-5.8 7.5-5.8s6.3 2 7.5 5.8"/></svg>',
+};
+const SITE = "../"; // the website this admin belongs to
+
+function authMessage(e) {
+  const m = String(e?.message || e || "").toLowerCase();
+  if (e?.status === 429 || m.includes("rate limit") || m.includes("too many")) return "Too many attempts. Wait a minute and try again.";
+  if (m.includes("invalid login") || m.includes("invalid credentials")) return "The email or password is incorrect.";
+  if (m.includes("not confirmed")) return "This account isn't confirmed yet. Ask an admin to confirm it.";
+  if (m.includes("same") && m.includes("password")) return "The new password must be different from the current one.";
+  if (m.includes("password") && (m.includes("weak") || m.includes("least") || m.includes("short"))) return "Choose a longer password (at least 8 characters).";
+  if (m.includes("fetch") || m.includes("network") || m.includes("offline")) return "You seem to be offline. Check your connection and try again.";
+  return "Something went wrong. Please try again.";
+}
+
+const field = (name, label, type, autocomplete, value = "", extra = "") => `
+  <label class="gate__field${type === "password" ? " gate__field--pw" : ""}">
+    <span>${label}</span>
+    <input name="${name}" type="${type}" autocomplete="${autocomplete}" value="${esc(value)}" ${extra} required spellcheck="false" autocapitalize="off">
+    ${type === "password" ? `<button class="gate__eye" type="button" data-eye aria-label="Show password" title="Show password">${ICONS.eye}</button>` : "<span></span>"}
+  </label>`;
+const banner = (kind, text) => `<div class="gate__${kind}" role="${kind === "error" ? "alert" : "status"}"${text ? "" : " hidden"}>${ICONS[kind === "error" ? "alert" : "info"]}<span>${esc(text || "")}</span></div>`;
+const brand = `<div class="gate__brand"><span class="gate__mark">${ICONS.mark}</span><span class="logo">TRUSS TECH</span><span class="gate__app">Quote Requests</span></div>`;
+
+const VIEWS = {
+  loading: () => `<div class="gate__loading"><span class="spinner" aria-hidden="true"></span><span class="sr-only">Loading</span></div>`,
+  signin: (o) => `<div class="gate__card">${brand}
+    <h1>Sign in</h1><p class="gate__lead">Use your Truss Tech team account.</p>
+    <form class="gate__form" data-gate="signin" novalidate>
+      ${banner("notice", o.notice)}${banner("error", o.error)}
+      <div class="gate__fields">
+        ${field("email", "Email", "email", "username", o.email ?? store.get("tt-admin-last-email") ?? "", 'inputmode="email"')}
+        ${field("password", "Password", "password", "current-password")}
+      </div>
+      <button class="btn btn--primary gate__submit" type="submit">Sign In</button>
+      <button class="link-btn gate__link" type="button" data-go="forgot">Forgot password?</button>
+    </form></div>
+    <p class="gate__foot">Access is limited to the Truss Tech team.<a href="${SITE}">← Back to the website</a></p>`,
+  forgot: (o) => `<div class="gate__card">${brand}
+    <h1>Reset password</h1><p class="gate__lead">Enter the email you sign in with. We'll send you a link to choose a new password.</p>
+    <form class="gate__form" data-gate="forgot" novalidate>
+      ${banner("error", o.error)}
+      <div class="gate__fields">${field("email", "Email", "email", "username", o.email ?? store.get("tt-admin-last-email") ?? "", 'inputmode="email"')}</div>
+      <button class="btn btn--primary gate__submit" type="submit">Send Link</button>
+      <button class="link-btn gate__link" type="button" data-go="signin">Back to sign in</button>
+    </form></div>`,
+  sent: (o) => `<div class="gate__card">
+    <span class="gate__icon">${ICONS.mail}</span>
+    <h1>Check your email</h1>
+    <p class="gate__lead">If <b>${esc(o.email)}</b> has an account, a link to set a new password is on its way. It can take a minute; check the spam folder too.</p>
+    <button class="btn btn--primary gate__submit" type="button" data-go="signin">Back to Sign In</button></div>`,
+  newpass: (o) => `<div class="gate__card">
+    <span class="gate__icon">${ICONS.lock}</span>
+    <h1>Choose a new password</h1><p class="gate__lead">You'll use it the next time you sign in.</p>
+    <form class="gate__form" data-gate="newpass" novalidate>
+      ${banner("error", o.error)}
+      <div class="gate__fields">
+        ${field("pw1", "New", "password", "new-password", "", 'minlength="8"')}
+        ${field("pw2", "Confirm", "password", "new-password")}
+      </div>
+      <p class="gate__hint">At least 8 characters.</p>
+      <button class="btn btn--primary gate__submit" type="submit">Save Password</button>
+    </form></div>`,
+  noaccess: (o) => `<div class="gate__card">
+    <span class="gate__icon">${ICONS.person}</span>
+    <h1>No access yet</h1>
+    <p class="gate__lead">You're signed in as <b>${esc(o.email)}</b>, but this account isn't on the Truss Tech team list. Ask an admin to add you.</p>
+    <button class="btn gate__submit" type="button" data-go="signout">Sign Out</button></div>
+    <p class="gate__foot"><a href="${SITE}">← Back to the website</a></p>`,
+};
+
+let gateView = null;
+function lock(view, opts = {}) {
+  gateView = view;
+  document.body.classList.add("is-locked");
+  if (settings.open) settings.close();
+  if (!$("#viewer").hidden) closeViewer();
+  gate.innerHTML = VIEWS[view](opts);
+  document.title = view === "loading" ? "Quote requests · Truss Tech" : "Sign in · Truss Tech Quote Requests";
+  const first = opts.focus ? gate.querySelector(`[name="${opts.focus}"]`) : [...gate.querySelectorAll("input")].find((i) => !i.value) || gate.querySelector("input, .gate__submit");
+  first?.focus();
+}
+function unlock() {
+  gateView = null;
+  document.body.classList.remove("is-locked");
+  gate.innerHTML = "";
+  document.title = "Quote requests · Truss Tech";
+}
+function gateFail(form, message, focusName) {
+  const err = form.querySelector(".gate__error");
+  err.querySelector("span").textContent = message; err.hidden = false;
+  const notice = form.querySelector(".gate__notice"); if (notice) notice.hidden = true;
+  const card = form.closest(".gate__card");
+  card.classList.remove("shake"); void card.offsetWidth; card.classList.add("shake");
+  busy(form, false);
+  const f = focusName && form.querySelector(`[name="${focusName}"]`);
+  if (f) { f.focus(); f.select(); }
+}
+function busy(form, on, label) {
+  const b = form.querySelector(".gate__submit");
+  if (on) { b.dataset.label = b.textContent; b.innerHTML = `<span class="spinner" aria-hidden="true"></span>${esc(label)}`; b.setAttribute("aria-busy", "true"); }
+  else if (b.dataset.label) { b.textContent = b.dataset.label; b.removeAttribute("aria-busy"); }
+}
+const validEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v);
+
+gate.addEventListener("click", (e) => {
+  const eye = e.target.closest("[data-eye]");
+  if (eye) {
+    const input = eye.parentElement.querySelector("input");
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    eye.innerHTML = show ? ICONS.eyeOff : ICONS.eye;
+    eye.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    eye.title = eye.getAttribute("aria-label");
+    input.focus();
+    return;
+  }
+  const go = e.target.closest("[data-go]")?.dataset.go;
+  if (!go) return;
+  const email = gate.querySelector('[name="email"]')?.value.trim();
+  if (go === "signout") signOut();
+  else lock(go, { email });
+});
+
+gate.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const form = e.target, kind = form.dataset.gate;
+  if (kind === "signin") {
+    const email = form.email.value.trim().toLowerCase(), password = form.password.value;
+    if (!validEmail(email)) return gateFail(form, "Enter the email you sign in with.", "email");
+    if (!password) return gateFail(form, "Enter your password.", "password");
+    busy(form, true, "Signing In…");
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) return gateFail(form, authMessage(error), "password");
+    store.set("tt-admin-last-email", email);
+    enterApp(data.session);
+  } else if (kind === "forgot") {
+    const email = form.email.value.trim().toLowerCase();
+    if (!validEmail(email)) return gateFail(form, "Enter the email you sign in with.", "email");
+    busy(form, true, "Sending…");
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+    if (error && (error.status === 429 || /rate|too many/i.test(error.message))) return gateFail(form, authMessage(error), "email");
+    if (error && /fetch|network/i.test(error.message)) return gateFail(form, authMessage(error), "email");
+    store.set("tt-admin-last-email", email);
+    lock("sent", { email }); // same answer whether or not the account exists
+  } else if (kind === "newpass") {
+    const pw1 = form.pw1.value, pw2 = form.pw2.value;
+    if (pw1.length < 8) return gateFail(form, "Use at least 8 characters.", "pw1");
+    if (pw1 !== pw2) return gateFail(form, "The two passwords don't match.", "pw2");
+    busy(form, true, "Saving…");
+    const { data, error } = await sb.auth.updateUser({ password: pw1 });
+    if (error) return gateFail(form, authMessage(error), "pw1");
+    toast("Password saved");
+    enterApp(session || (await sb.auth.getSession()).data.session || data?.session);
+  }
+});
+
+async function enterApp(s) {
+  if (!s) { lock("signin"); return; }
+  session = s;
+  lock("loading");
+  let meRow;
+  try { meRow = (await rpc("admin_me", {}))?.[0]; }
+  catch (e) { lock("signin", { error: e.message }); return; }
+  if (!meRow) { lock("noaccess", { email: s.user?.email || "" }); return; }
+  state.me = meRow.full_name; state.role = meRow.role; state.email = meRow.email;
+  try { state.staff = (await api("/staff_members?select=full_name&order=full_name")).map((x) => x.full_name); } catch { state.staff = []; }
+  state.selected = hashRef() || null;
+  unlock();
+  render();
+  await load();
+  if (state.selected && !current()) { state.selected = null; render(); }
+  else if (current()) select(state.selected, { push: false });
+}
+
+function clearData() {
+  state.rows = []; state.loaded = false; state.selected = null; state.drafts = {}; state.me = ""; state.role = null; state.email = ""; state.staff = [];
+  $("#list").innerHTML = ""; $("#detail").innerHTML = "";
+}
+async function signOut() {
+  const email = state.email;
+  await sb.auth.signOut().catch(() => {});
+  session = null; clearData();
+  history.replaceState(null, "", location.pathname + location.search);
+  lock("signin", { notice: "You signed out.", email });
+}
+let ending = false;
+function sessionEnded() {
+  if (ending) return; ending = true;
+  const email = state.email;
+  sb.auth.signOut({ scope: "local" }).catch(() => {}).finally(() => { ending = false; });
+  session = null; clearData();
+  lock("signin", { notice: "Your session ended. Please sign in again.", email });
+}
+
+sb.auth.onAuthStateChange((event, s) => {
+  session = s;
+  if (event === "PASSWORD_RECOVERY") setTimeout(() => lock("newpass"), 0);
+  if (event === "SIGNED_OUT" && gateView === null && state.email) setTimeout(() => { clearData(); lock("signin", { notice: "You were signed out." }); }, 0);
+});
+
+// ---------- Account (settings) ----------
+const pwForm = $("#pw-form");
+function closePwForm() { pwForm.hidden = true; pwForm.reset(); $("#pw-msg").textContent = ""; $("#pw-msg").className = "pw-form__msg"; $("#pw-toggle").setAttribute("aria-expanded", "false"); }
+$("#pw-toggle").addEventListener("click", () => {
+  if (!pwForm.hidden) return closePwForm();
+  pwForm.hidden = false; $("#pw-toggle").setAttribute("aria-expanded", "true"); pwForm.pw1.focus();
+});
+$("#pw-cancel").addEventListener("click", closePwForm);
+pwForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const msg = $("#pw-msg"); msg.className = "pw-form__msg";
+  const pw1 = pwForm.pw1.value, pw2 = pwForm.pw2.value;
+  if (pw1.length < 8) { msg.textContent = "Use at least 8 characters."; pwForm.pw1.focus(); return; }
+  if (pw1 !== pw2) { msg.textContent = "The two passwords don't match."; pwForm.pw2.focus(); return; }
+  msg.textContent = "Saving…";
+  const { error } = await sb.auth.updateUser({ password: pw1 });
+  if (error) { msg.textContent = authMessage(error); return; }
+  pwForm.reset(); msg.textContent = "Password changed. Use it next time you sign in."; msg.classList.add("is-ok");
+});
+$("#sign-out").addEventListener("click", () => { settings.close(); signOut(); });
+
+// ---------- Start ----------
+(async () => {
+  const { data } = await sb.auth.getSession();
+  session = data.session;
+  if (RECOVERY_LINK && session) { history.replaceState(null, "", location.pathname + location.search); lock("newpass"); return; }
+  if (LINK_ERROR) {
+    history.replaceState(null, "", location.pathname + location.search);
+    lock("signin", { error: "That link has expired or was already used. Use “Forgot password?” to get a new one." });
+    return;
+  }
+  if (session) enterApp(session); else lock("signin");
+})();

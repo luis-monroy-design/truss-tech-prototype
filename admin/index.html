@@ -11,7 +11,7 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin.css?v=4">
+<link rel="stylesheet" href="admin.css?v=5">
 <script>
   // Apply saved appearance before the first paint (no flash). Per-browser preference only.
   try {
@@ -21,7 +21,8 @@
   } catch (e) {}
 </script>
 </head>
-<body>
+<body class="is-locked">
+<div class="gate" id="gate" aria-live="polite"><div class="gate__loading"><span class="spinner" aria-hidden="true"></span><span class="sr-only">Loading</span></div></div>
 <a class="skip-link" href="#list">Skip to requests</a>
 
 <header class="topbar">
@@ -37,7 +38,7 @@
     <button class="icon-btn" id="open-settings" type="button" title="Settings" aria-label="Settings" aria-haspopup="dialog">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
     </button>
-    <button class="me" id="me" type="button" title="Change your name"></button>
+    <button class="me" id="me" type="button" title="Account and settings"></button>
   </div>
 </header>
 
@@ -60,12 +61,21 @@
       <p class="settings__hint">Automatic follows your computer or phone.</p>
     </div>
 
-    <p class="settings__label">Your name</p>
+    <p class="settings__label">Account</p>
     <div class="group">
-      <label class="group__row">
-        <span class="sr-only">Your name</span>
-        <input id="settings-name" maxlength="80" autocomplete="name" placeholder="Shown next to your changes and notes">
-      </label>
+      <div class="group__row account">
+        <span class="avatar" id="acct-avatar" aria-hidden="true"></span>
+        <span class="account__text"><b id="acct-name"></b><span id="acct-email"></span></span>
+        <span class="badge-test" id="acct-role"></span>
+      </div>
+      <button class="group__row group__action" type="button" id="pw-toggle" aria-expanded="false" aria-controls="pw-form">Change Password</button>
+      <form class="pw-form" id="pw-form" hidden novalidate>
+        <label class="pw-form__row"><span>New</span><input name="pw1" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required></label>
+        <label class="pw-form__row"><span>Confirm</span><input name="pw2" type="password" autocomplete="new-password" placeholder="Type it again" required></label>
+        <p class="pw-form__msg" id="pw-msg" role="alert"></p>
+        <div class="pw-form__actions"><button class="btn btn--sm" type="button" id="pw-cancel">Cancel</button><button class="btn btn--sm btn--primary" type="submit">Save Password</button></div>
+      </form>
+      <button class="group__row group__action group__action--danger" type="button" id="sign-out">Sign Out</button>
     </div>
 
     <p class="settings__label">Request list</p>
@@ -102,19 +112,16 @@
       </dl>
     </div>
 
+    <div id="settings-test">
     <p class="settings__label">Test data</p>
     <div class="group">
       <button class="group__row group__action" type="button" id="settings-reset">Reset the 3 test requests</button>
+    </div>
     </div>
     <p class="settings__hint settings__hint--out">Settings are saved in this browser only.</p>
   </div>
 </dialog>
 
-<div class="preview-bar" role="note">
-  <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5M10 6.2v.1"/></svg>
-  <p><strong>Preview with test data.</strong> <span class="preview-bar__long">This page is public and shows 3 test requests only. Sign-in will be required before the website goes live; real customer requests are never shown here without it.</span></p>
-  <button class="link-btn" id="reset-demo" type="button">Reset test data</button>
-</div>
 
 <main class="layout" id="layout">
   <nav class="sidebar" aria-label="Filter by status">
@@ -182,26 +189,12 @@
   <div class="viewer__stage" id="viewer-stage"></div>
 </div>
 
-<dialog class="ask" id="ask-name">
-  <form method="dialog">
-    <div class="ask__icon" aria-hidden="true">
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="7" r="3.2"/><path d="M3.8 17c1-3.2 3.4-4.8 6.2-4.8s5.2 1.6 6.2 4.8"/></svg>
-    </div>
-    <h2>What's your name?</h2>
-    <p>It appears next to the changes and notes you make, so the team knows who did what.</p>
-    <label class="field"><span class="sr-only">Your name</span><input id="ask-name-input" maxlength="80" autocomplete="name" placeholder="Your name" required></label>
-    <div class="ask__actions">
-      <button class="btn" type="button" data-dialog-cancel>Cancel</button>
-      <button class="btn btn--primary" value="ok" type="submit">Continue</button>
-    </div>
-  </form>
-</dialog>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden>
   <span id="toast-text"></span>
   <button class="toast__undo" id="toast-undo" type="button" hidden>Undo</button>
 </div>
 
-<script type="module" src="admin.js?v=4"></script>
+<script type="module" src="admin.js?v=5"></script>
 </body>
 </html>

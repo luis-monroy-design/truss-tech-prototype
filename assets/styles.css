@@ -105,6 +105,9 @@ figure .vt-cota { margin-top:var(--space-3); }
 .mega a { display:block; padding:var(--space-4); text-decoration:none; font:400 16px/1.4 var(--font-text); }
 .mega a span { display:block; margin-top:4px; font:400 14px/1.5 var(--font-text); color:#57544a; }
 .mega a:hover { background:var(--surface); }
+.header-admin { margin-right:calc(var(--space-3) - var(--space-8)); }
+.hero-header:not(.is-solid) .header-admin { border-color:rgba(240,238,229,.45); }
+.hero-header:not(.is-solid) .header-admin:hover { border-color:var(--madera-albura); }
 .menu-toggle { display:none; }
 .mobile-cta { display:none; }
 /* Overlay header on the home opening (with scrim) */
