@@ -8,8 +8,9 @@
 # Repository variables (Settings > Secrets and variables > Actions > Variables):
 #   FTP_SERVER_DIR subfolder inside the FTP account, e.g. website-prototype/ (default: account root)
 #
-# Uses lftp "mirror": uploads new/changed files and removes files deleted from the repo,
-# only inside FTP_SERVER_DIR.
+# Uses lftp "mirror": uploads new/changed files and removes files deleted from the repo.
+#   repo root (sketch prototype, without v1/) -> FTP_SERVER_DIR  (.../luisdmonroyr/website-prototype/)
+#   v1/ (website, first version)              -> website/v1      (.../luisdmonroyr/website/v1/)
 #
 # TLS: the Hostek FTP server presents a self-signed, expired certificate (CN=*.ezhostingserver.com),
 # so normal verification cannot pass. Instead of turning verification off, only THAT certificate is
@@ -60,6 +61,7 @@ jobs:
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           TARGET_DIR: ${{ vars.FTP_SERVER_DIR || '.' }}
+          V1_DIR: website/v1
         run: |
           lftp -u "$FTP_USERNAME" --env-password "$FTP_SERVER" <<EOF
           set ftp:ssl-force true
@@ -70,7 +72,9 @@ jobs:
           mkdir -p -f "$TARGET_DIR"
           mirror --reverse --delete --verbose --parallel=2 --no-perms \
             --exclude-glob .git* --exclude-glob .git/ --exclude-glob .github/ \
-            --exclude-glob README.md --exclude-glob .nojekyll \
+            --exclude-glob README.md --exclude-glob .nojekyll --exclude-glob v1/ \
             ./ "$TARGET_DIR"
+          mkdir -p -f "$V1_DIR"
+          mirror --reverse --delete --verbose --parallel=2 --no-perms ./v1/ "$V1_DIR"
           bye
           EOF

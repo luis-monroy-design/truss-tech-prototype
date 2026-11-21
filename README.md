@@ -1,4 +1,12 @@
-# Truss Tech — website prototype (Phase A)
+# Truss Tech — website prototype (Phase A) and website v1
+
+| Folder | Published at | What it is |
+|---|---|---|
+| repo root | trusstech.com/awesome/trusstech/luisdmonroyr/website-prototype/ | Sketch prototype (line drawings, prototype notes), kept as it was before the 3D animations |
+| `v1/` | trusstech.com/awesome/trusstech/luisdmonroyr/website/v1/ | Website first version: 3D animations, illustrations, no prototype notes; admin with a test-stage notice |
+
+`v1/` is generated from the prototype sources with `_build/v1.py` (illustrations rendered with `_build/stills.html`).
+
 
 Interactive design prototype for the new trusstech.com, built on the Truss design system.
 Work in progress for client review: copy is provisional and unconfirmed data is tagged.
