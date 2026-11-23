@@ -1,7 +1,7 @@
 // Truss Tech · process scene, scrubbed by scroll through the 4 steps:
 // 1 plans land on the design table · 2 the truss is engineered (gold linework) and turns into wood ·
 // 3 trusses are produced and stacked next to the quote · 4 the bundle leaves on a flatbed.
-import { THREE, rng, lerp, clamp01, ease, materials, roofTruss, blueprintTexture, quoteTexture, shadowAll, metalReflections } from "./kit.js?v=1795475829";
+import { THREE, rng, lerp, clamp01, ease, materials, roofTruss, blueprintTexture, quoteTexture, shadowAll, metalReflections } from "./kit.js?v=1795476847";
 
 export function start(section) {
   const host = section.querySelector("[data-proc-3d]");

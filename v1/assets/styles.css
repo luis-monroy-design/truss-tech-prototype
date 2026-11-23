@@ -101,7 +101,8 @@ figure .vt-cota { margin-top:var(--space-3); }
 .nav-item > button svg { width:14px; height:14px; transition:transform var(--dur-rapido) var(--ease-asentar); }
 .nav-item.is-open > button svg { transform:rotate(180deg); }
 .mega { display:none; position:absolute; top:calc(100% + 14px); left:-24px; width:520px; padding:var(--space-4); background:var(--surface-raised); color:#15140f; box-shadow:var(--shadow-overlay); grid-template-columns:1fr 1fr; }
-.nav-item:hover .mega, .nav-item.is-open .mega { display:grid; }
+:root:not(.js) .nav-item:hover .mega, .nav-item.is-open .mega { display:grid; }
+.mega::before { content:""; position:absolute; left:0; right:0; bottom:100%; height:18px; } /* bridges the gap under the button so the hover is not lost */
 .mega a { display:block; padding:var(--space-4); text-decoration:none; font:400 16px/1.4 var(--font-text); }
 .mega a span { display:block; margin-top:4px; font:400 14px/1.5 var(--font-text); color:#57544a; }
 .mega a:hover { background:var(--surface); }

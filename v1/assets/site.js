@@ -6,11 +6,30 @@
   var fine = window.matchMedia && window.matchMedia("(pointer: fine)").matches;
   var raf = window.requestAnimationFrame.bind(window);
 
-  // 1. Mega menus: click/tap + Escape (not hover only)
+  // 1. Mega menus: hover (mouse), click/tap, Escape
   var toggles = document.querySelectorAll(".nav-item > button[aria-controls]");
   function closeAll(except) { toggles.forEach(function (b) { if (b !== except) { b.setAttribute("aria-expanded", "false"); b.parentElement.classList.remove("is-open"); } }); }
+  function setOpen(btn, open) { btn.setAttribute("aria-expanded", String(open)); btn.parentElement.classList.toggle("is-open", open); }
   toggles.forEach(function (btn) {
-    btn.addEventListener("click", function () { var open = btn.getAttribute("aria-expanded") === "true"; closeAll(btn); btn.setAttribute("aria-expanded", String(!open)); btn.parentElement.classList.toggle("is-open", !open); });
+    var item = btn.parentElement, timer = 0, byHover = false;
+    btn.addEventListener("click", function () {
+      var open = btn.getAttribute("aria-expanded") === "true";
+      closeAll(btn);
+      if (open && byHover) { byHover = false; return; } // opened by hover: a click keeps it open
+      setOpen(btn, !open);
+    });
+    // mouse: open on hover and stay open while the pointer is anywhere over the button or the menu;
+    // a short delay before closing forgives a slightly curved path from the button to the menu
+    item.addEventListener("pointerenter", function (e) {
+      if (e.pointerType !== "mouse") return;
+      clearTimeout(timer);
+      if (btn.getAttribute("aria-expanded") !== "true") { closeAll(btn); setOpen(btn, true); byHover = true; }
+    });
+    item.addEventListener("pointerleave", function (e) {
+      if (e.pointerType !== "mouse") return;
+      clearTimeout(timer);
+      timer = setTimeout(function () { if (!item.contains(document.activeElement) || byHover) { setOpen(btn, false); byHover = false; } }, 300);
+    });
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") { var o = document.querySelector('.nav-item > button[aria-expanded="true"]'); closeAll(); if (o) o.focus(); } });
   document.addEventListener("click", function (e) { if (!e.target.closest(".nav-item")) closeAll(); });
