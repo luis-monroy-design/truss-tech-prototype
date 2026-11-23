@@ -1,4 +1,4 @@
-// Truss Tech · Quote requests admin.
+// Truss Tech admin: quote requests (index.html) and Contact Us messages (messages.html).
 // Sign-in with Supabase Auth (email + password). Data is read and written through Supabase (PostgREST)
 // with the signed-in user's token; the database only answers to people listed in staff_members.
 
@@ -17,7 +17,20 @@ const sb = createClient(BASE, KEY, {
 let session = null;
 const authHeader = () => (session ? { Authorization: `Bearer ${session.access_token}` } : {});
 
-const STATUSES = [
+// Two sections share this file and the sign-in: quote requests (index.html) and Contact Us messages (messages.html).
+const KIND = document.body.dataset.kind === "messages" ? "messages" : "quotes";
+const MSG = KIND === "messages";
+const NOUN = MSG ? { one: "message", many: "messages", All: "All messages", app: "Messages", App: "Contact Messages" }
+  : { one: "request", many: "requests", All: "All requests", app: "Quote requests", App: "Quote Requests" };
+const TOPIC = { general: "General question", order: "Existing order or delivery", supplier: "Supplier or partnership", careers: "Careers", other: "Other" };
+const MIRROR = { sent: "Saved in the current site database", failed: "Copy to the current site database failed", pending: "Copy pending", disabled: "Copy to the current site database is off" };
+const RPC_NAME = MSG ? { admin_set_status: "admin_contact_set_status", admin_assign: "admin_contact_assign", admin_add_note: "admin_contact_add_note", admin_mark_opened: "admin_contact_mark_opened" } : {};
+const STATUSES = MSG ? [
+  { id: "new", label: "New" },
+  { id: "replied", label: "Replied" },
+  { id: "closed", label: "Closed" },
+  { id: "spam", label: "Spam" },
+] : [
   { id: "new", label: "New" },
   { id: "in_review", label: "In review" },
   { id: "quoted", label: "Quoted" },
@@ -26,8 +39,8 @@ const STATUSES = [
   { id: "spam", label: "Spam" },
 ];
 const LABEL = Object.fromEntries(STATUSES.map((s) => [s.id, s.label]));
-const OPEN = new Set(["new", "in_review"]);
-const NEXT = {
+const OPEN = new Set(MSG ? ["new"] : ["new", "in_review"]);
+const NEXT = MSG ? { new: { to: "replied", label: "Mark as Replied" }, replied: { to: "closed", label: "Close" } } : {
   new: { to: "in_review", label: "Start Review" },
   in_review: { to: "quoted", label: "Mark as Quoted" },
   quoted: { to: "won", label: "Mark as Won" },
@@ -63,18 +76,25 @@ async function api(path, { method = "GET", body } = {}) {
   const text = await r.text();
   const data = text ? JSON.parse(text) : null;
   if (r.status === 401 && session) { sessionEnded(); throw new Error("Your session has ended. Please sign in again."); }
-  if (!r.ok) throw new Error(data?.message === "not_allowed" ? "You don't have permission to change this request." : "Something went wrong. Please try again.");
+  if (!r.ok) throw new Error(data?.message === "not_allowed" ? `You don't have permission to change this ${NOUN.one}.` : "Something went wrong. Please try again.");
   return data;
 }
-const rpc = (fn, args) => api(`/rpc/${fn}`, { method: "POST", body: args });
+const rpc = (fn, args) => api(`/rpc/${RPC_NAME[fn] || fn}`, { method: "POST", body: args });
 
 async function load({ quiet = false } = {}) {
   const btn = $("#refresh");
   btn.classList.add("is-spinning");
   try {
-    const rows = await api("/quote_requests?select=*,plan_files(*),quote_events(*)&order=created_at.desc&plan_files.order=created_at.asc&quote_events.order=created_at.asc");
-    await signFiles(rows);
+    let rows;
+    if (MSG) {
+      rows = await api("/contact_messages?select=*,contact_events(*)&order=created_at.desc&contact_events.order=created_at.asc");
+      rows.forEach((r) => { r.quote_events = r.contact_events || []; delete r.contact_events; });
+    } else {
+      rows = await api("/quote_requests?select=*,plan_files(*),quote_events(*)&order=created_at.desc&plan_files.order=created_at.asc&quote_events.order=created_at.asc");
+      await signFiles(rows);
+    }
     state.rows = rows; state.error = null; state.loaded = true; state.syncedAt = Date.now();
+    renderSwitchCount();
   } catch (e) {
     state.error = e.message; state.loaded = true;
     if (quiet && state.rows.length) toast("Couldn't refresh. Showing the last loaded data.");
@@ -126,7 +146,7 @@ function highlight(text, q) {
 // ---------- Derived ----------
 function matches(r, q) {
   if (!q) return true;
-  return [r.company, r.full_name, r.reference, r.job_site, r.email, r.assignee_name, ...(r.plan_files || []).map((f) => f.file_name)]
+  return [r.company, r.full_name, r.reference, r.job_site, r.email, r.phone, r.message, TOPIC[r.topic], r.assignee_name, ...(r.plan_files || []).map((f) => f.file_name)]
     .some((v) => (v || "").toLowerCase().includes(q));
 }
 function visibleRows() {
@@ -136,7 +156,7 @@ function visibleRows() {
   const by = {
     received: (a, b) => b.created_at.localeCompare(a.created_at),
     bid: (a, b) => (a.bid_date || "9999").localeCompare(b.bid_date || "9999") || b.created_at.localeCompare(a.created_at),
-    company: (a, b) => a.company.localeCompare(b.company),
+    company: (a, b) => (a.company || a.full_name || "").localeCompare(b.company || b.full_name || ""),
   }[state.sort];
   return rows.sort(by);
 }
@@ -155,10 +175,10 @@ function renderFilters() {
     const n = count(f.id);
     return `<button class="side-item" role="tab" type="button" data-filter="${f.id}" aria-selected="${state.filter === f.id}">
       <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SIDE_ICON[f.id]}</svg>
-      <span class="side-item__label">${esc(f.id === "all" ? "All Requests" : f.label)}</span>${n ? `<span class="side-item__n">${n}</span>` : ""}
+      <span class="side-item__label">${esc(f.id === "all" ? (MSG ? "All Messages" : "All Requests") : f.label)}</span>${n ? `<span class="side-item__n">${n}</span>` : ""}
     </button>`;
   }).join("");
-  $("#list-title").textContent = state.filter === "all" ? "All requests" : LABEL[state.filter];
+  $("#list-title").textContent = state.filter === "all" ? NOUN.All : LABEL[state.filter];
 }
 const SIDE_ICON = {
   all: '<path d="M3 11h4l1.5 2.5h3L13 11h4"/><path d="M3 11l2-6h10l2 6v5H3z"/>',
@@ -168,10 +188,32 @@ const SIDE_ICON = {
   won: '<circle cx="10" cy="10" r="7"/><path d="m7 10.2 2 2 4-4.4"/>',
   lost: '<circle cx="10" cy="10" r="7"/><path d="m7.5 7.5 5 5m0-5-5 5"/>',
   spam: '<path d="M10 3 2.8 16h14.4L10 3Z"/><path d="M10 8.5v3.5M10 14.2v.1"/>',
+  replied: '<path d="M8 5 3 10l5 5"/><path d="M3 10h9a5 5 0 0 1 5 5v1"/>',
+  closed: '<rect x="3" y="4" width="14" height="4" rx="1"/><path d="M4.5 8v8h11V8M8 11h4"/>',
 };
 const MOD = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent) ? "⌘" : "Ctrl";
 
+function messageRowHTML(r) {
+  const q = state.q.trim();
+  const unread = !r.opened_at;
+  const excerpt = r.message.length > 110 ? r.message.slice(0, 110).trimEnd() + "…" : r.message;
+  return `<li><button class="row${unread ? " is-unread" : ""}" type="button" data-ref="${esc(r.reference)}" aria-current="${state.selected === r.reference}">
+    ${unread ? '<span class="row__dot" title="Not opened yet"></span><span class="sr-only">Unread. </span>' : ""}
+    <p class="row__company">${highlight(r.full_name, q)}${r.company ? ` <span class="row__co">· ${highlight(r.company, q)}</span>` : ""}</p>
+    <span class="row__time" title="${esc(fullDate(r.created_at))}">${esc(ago(r.created_at))}</span>
+    <p class="row__sub"><b>${esc(TOPIC[r.topic])}</b> · ${highlight(excerpt, q)}</p>
+    <span></span>
+    <span class="row__foot">
+      <span class="status" data-s="${r.status}">${LABEL[r.status]}</span>
+      ${r.mirror_status === "failed" ? '<span class="due due--late">Copy failed</span>' : ""}
+      <span class="mono">${highlight(r.reference, q)}</span>
+      ${r.assignee_name ? `<span class="row__owner" title="Owner: ${esc(r.assignee_name)}"><span class="avatar avatar--sm">${esc(initials(r.assignee_name))}</span></span>` : ""}
+    </span>
+  </button></li>`;
+}
+
 function rowHTML(r) {
+  if (MSG) return messageRowHTML(r);
   const q = state.q.trim();
   const bid = bidInfo(r);
   const files = (r.plan_files || []).length;
@@ -200,17 +242,17 @@ function renderList() {
     return;
   }
   if (state.error && !state.rows.length) {
-    list.innerHTML = `<li class="empty"><h3>Couldn't load requests</h3><p>${esc(state.error)}</p><button class="btn btn--sm" type="button" data-action="retry">Try again</button></li>`;
+    list.innerHTML = `<li class="empty"><h3>Couldn't load ${NOUN.many}</h3><p>${esc(state.error)}</p><button class="btn btn--sm" type="button" data-action="retry">Try again</button></li>`;
     $("#count").textContent = "";
     return;
   }
   const rows = visibleRows();
-  $("#count").textContent = `${rows.length} ${rows.length === 1 ? "request" : "requests"}`;
+  $("#count").textContent = `${rows.length} ${rows.length === 1 ? NOUN.one : NOUN.many}`;
   if (!rows.length) {
     const q = state.q.trim();
     list.innerHTML = q
-      ? `<li class="empty"><h3>No matches for “${esc(q)}”</h3><p>Try a company, a person, a reference or a city.</p><button class="btn btn--sm" type="button" data-action="clear-search">Clear search</button></li>`
-      : `<li class="empty"><h3>Nothing ${state.filter === "all" ? "here" : "marked " + esc(LABEL[state.filter].toLowerCase())} yet</h3><p>${state.filter === "all" ? "New requests from the website appear here." : "Requests show up here when you change their status."}</p>${state.filter !== "all" ? '<button class="btn btn--sm" type="button" data-filter="all">Show all requests</button>' : ""}</li>`;
+      ? `<li class="empty"><h3>No matches for “${esc(q)}”</h3><p>Try ${MSG ? "a name, an email, a reference or words from the message" : "a company, a person, a reference or a city"}.</p><button class="btn btn--sm" type="button" data-action="clear-search">Clear search</button></li>`
+      : `<li class="empty"><h3>Nothing ${state.filter === "all" ? "here" : "marked " + esc(LABEL[state.filter].toLowerCase())} yet</h3><p>${state.filter === "all" ? `New ${NOUN.many} from the website appear here.` : `${MSG ? "Messages" : "Requests"} show up here when you change their status.`}</p>${state.filter !== "all" ? `<button class="btn btn--sm" type="button" data-filter="all">Show all ${NOUN.many}</button>` : ""}</li>`;
     return;
   }
   list.innerHTML = rows.map(rowHTML).join("");
@@ -223,14 +265,19 @@ const ICON = {
   status: '<path d="M4 10.5 8 14l8-8"/>',
   assigned: '<circle cx="10" cy="7" r="3"/><path d="M4 17c1-3 3.5-4.5 6-4.5s5 1.5 6 4.5"/>',
   note: '<path d="M4 4h12v9H9l-4 3v-3H4z"/>',
+  mirrored: '<ellipse cx="10" cy="5" rx="6" ry="2.2"/><path d="M4 5v10c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2V5M4 10c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2"/>',
+  mirror_failed: '<ellipse cx="10" cy="5" rx="6" ry="2.2"/><path d="M4 5v10c0 1.2 2.7 2.2 6 2.2M16 5v4M13 13l4 4m0-4-4 4"/>',
 };
 function eventHTML(e) {
   const who = `<b>${esc(e.author || "Someone")}</b>`;
   const m = e.meta || {};
   let text;
   switch (e.kind) {
-    case "received": text = `Request received from the website${m.files != null ? ` with ${m.files} ${m.files === 1 ? "file" : "files"}` : ""}`; break;
+    case "received": if (MSG) { text = "Message received from the website"; break; }
+      text = `Request received from the website${m.files != null ? ` with ${m.files} ${m.files === 1 ? "file" : "files"}` : ""}`; break;
     case "emailed": text = `Email sent to the ${esc(m.to || "team")}`; break;
+    case "mirrored": text = `Copied to the current site database${m.http ? ` (HTTP ${esc(m.http)})` : ""}`; break;
+    case "mirror_failed": text = `Copy to the current site database failed${m.error ? `: ${esc(m.error)}` : ""}${m.attempt ? ` · attempt ${esc(m.attempt)}` : ""}`; break;
     case "status": text = `${who} changed the status from ${esc(LABEL[m.from] || m.from)} to <b>${esc(LABEL[m.to] || m.to)}</b>`; break;
     case "assigned":
       text = !m.to ? `${who} removed the owner` : m.to === e.author ? `${who} took ownership` : `${who} assigned it to <b>${esc(m.to)}</b>`; break;
@@ -266,7 +313,20 @@ async function signFiles(rows) {
   files.forEach((f) => { f.signed_url = byPath.get(f.storage_path) || null; });
 }
 
+function messageOverviewHTML() {
+  const fresh = state.rows.filter((r) => r.status === "new").length;
+  const unread = state.rows.filter((r) => !r.opened_at).length;
+  const failed = state.rows.filter((r) => r.mirror_status === "failed").length;
+  return `<div class="d-empty"><div>
+    <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="6" y="9" width="28" height="22" rx="2"/><path d="m7 11 13 10 13-10"/></svg>
+    <p style="margin:0 0 4px;color:var(--ink);font-size:17px">${fresh} new ${fresh === 1 ? "message" : "messages"}</p>
+    <p style="margin:0">${[`${unread} not opened`, `${state.rows.length} in total`, failed ? `${failed} not copied to the current site database` : ""].filter(Boolean).join(" · ")}</p>
+    <p style="margin:16px 0 0;font-size:13px">Pick a message on the left to read it.</p>
+  </div></div>`;
+}
+
 function overviewHTML() {
+  if (MSG) return messageOverviewHTML();
   const open = state.rows.filter((r) => OPEN.has(r.status));
   const fresh = state.rows.filter((r) => r.status === "new").length;
   const unread = state.rows.filter((r) => !r.opened_at).length;
@@ -280,10 +340,116 @@ function overviewHTML() {
   </div></div>`;
 }
 
+function mirrorHTML(r) {
+  const s = r.mirror_status;
+  const icon = s === "sent" ? '<path d="M4 10.5 8 14l8-8"/>' : s === "failed" ? '<path d="M10 6v5M10 13.8v.1"/>' : '<path d="M5 10h10"/>';
+  const detail = s === "sent" ? `${r.mirror_at ? esc(fullDate(r.mirror_at)) : ""}${r.mirror_http ? ` · HTTP ${esc(r.mirror_http)}` : ""}`
+    : s === "failed" ? `${esc(r.mirror_error || "Unknown error")}${r.mirror_attempts ? ` · ${esc(r.mirror_attempts)} ${r.mirror_attempts === 1 ? "attempt" : "attempts"}` : ""}`
+    : s === "disabled" ? "Turns on after testing with the current site's database." : "";
+  const canRetry = s === "failed" && ["admin", "estimator"].includes(state.role);
+  return `<div class="mirror" data-m="${esc(s)}">
+    <span class="mirror__icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icon}</svg></span>
+    <div><p class="mirror__title">${esc(MIRROR[s] || s)}</p>${detail ? `<p class="mirror__meta">${detail}</p>` : ""}</div>
+    ${canRetry ? '<button class="btn btn--sm" type="button" data-action="retry-mirror">Try Again</button>' : ""}
+  </div>`;
+}
+
+function renderMessageDetail(pane, r) {
+  const events = [...(r.quote_events || [])];
+  if (!events.some((e) => e.kind === "received")) events.unshift({ kind: "received", created_at: r.created_at, meta: {} });
+  events.sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const next = NEXT[r.status];
+  const names = [...new Set([state.me, ...state.staff, ...state.rows.map((x) => x.assignee_name)].filter(Boolean))];
+  const quoted = r.message.split("\n").map((l) => `> ${l}`).join("\n");
+  const mailto = `mailto:${encodeURIComponent(r.email)}?subject=${encodeURIComponent(`Re: your message to Truss Tech (${r.reference})`)}&body=${encodeURIComponent(`Hi ${r.full_name.split(" ")[0]},\n\n\n\n${quoted}`)}`;
+  const copyIcon = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="7" y="7" width="9" height="10" rx="1"/><path d="M4 13V4a1 1 0 0 1 1-1h8"/></svg>';
+  pane.innerHTML = `
+  <header class="d-head">
+    <button class="d-back" type="button" data-action="back"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m12 4-6 6 6 6"/></svg>All messages</button>
+    <div class="d-title">
+      <div>
+        <p class="d-eyebrow">
+          <button class="d-copy mono" type="button" data-copy="${esc(r.reference)}" title="Copy reference">${esc(r.reference)}</button>
+          <span>·</span><span title="${esc(fullDate(r.created_at))}">Received ${esc(ago(r.created_at))}</span>
+        </p>
+        <h1>${esc(r.full_name)}</h1>
+        <p class="d-sub">${esc(TOPIC[r.topic])}${r.company ? ` · ${esc(r.company)}` : ""}</p>
+      </div>
+      <div class="d-actions">
+        <a class="btn btn--primary" href="${esc(mailto)}">Reply</a>
+        ${next ? `<button class="btn" type="button" data-status="${next.to}">${esc(next.label)}</button>` : ""}
+        <label class="status-select"><span class="sr-only">Status</span>
+          <span class="status" data-s="${r.status}" aria-hidden="true"></span>
+          <select data-action="status">${STATUSES.map((s) => `<option value="${s.id}"${s.id === r.status ? " selected" : ""}>${s.label}</option>`).join("")}</select>
+        </label>
+      </div>
+    </div>
+  </header>
+  <div class="d-body">
+    <div class="d-main">
+      <section class="sec" aria-labelledby="h-msg">
+        <div class="sec__head"><h2 id="h-msg">Message</h2><button class="link-btn" type="button" data-copy="${esc(r.message)}">Copy</button></div>
+        <p class="quote quote--msg">${esc(r.message)}</p>
+      </section>
+
+      <section class="sec" aria-labelledby="h-act">
+        <div class="sec__head"><h2 id="h-act">Activity and internal notes</h2></div>
+        <form class="composer" data-action="note">
+          <label class="sr-only" for="note">Add an internal note</label>
+          <textarea id="note" name="note" maxlength="4000" placeholder="Add a note for the team. The sender never sees it.">${esc(state.drafts[r.reference] || "")}</textarea>
+          <div class="composer__row"><span>${MOD} + Enter to save</span><button class="btn btn--primary btn--sm" type="submit">Add Note</button></div>
+        </form>
+        <ol class="timeline">${events.map(eventHTML).join("")}</ol>
+      </section>
+    </div>
+
+    <aside class="d-side" aria-label="Summary">
+      <div class="side-block">
+        <h2>Owner</h2>
+        <form class="owner" data-action="assign" autocomplete="off">
+          <span class="avatar ${r.assignee_name ? "" : "avatar--muted"}" aria-hidden="true">${r.assignee_name ? esc(initials(r.assignee_name)) : "?"}</span>
+          <label class="sr-only" for="owner">Owner</label>
+          <input id="owner" name="owner" list="owner-names" value="${esc(r.assignee_name || "")}" placeholder="Nobody yet" maxlength="80">
+          <datalist id="owner-names">${names.map((n) => `<option value="${esc(n)}">`).join("")}</datalist>
+        </form>
+        ${!state.me || r.assignee_name !== state.me ? `<p class="owner-hint"><button class="link-btn" type="button" data-action="take">Assign to Me</button></p>` : '<p class="owner-hint">You own this message.</p>'}
+      </div>
+      <div class="side-block">
+        <h2>Contact</h2>
+        <dl class="kv">
+          <div><dt>Name</dt><dd>${esc(r.full_name)}</dd></div>
+          <div><dt>Email</dt><dd class="copy-row"><a href="${esc(mailto)}">${esc(r.email)}</a><button class="icon-btn" type="button" data-copy="${esc(r.email)}" aria-label="Copy email" title="Copy email">${copyIcon}</button></dd></div>
+          <div><dt>Phone</dt><dd class="copy-row">${r.phone ? `<a href="tel:${esc(r.phone.replace(/[^\d+]/g, ""))}">${esc(r.phone)}</a><button class="icon-btn" type="button" data-copy="${esc(r.phone)}" aria-label="Copy phone" title="Copy phone">${copyIcon}</button>` : '<span class="muted">Not given</span>'}</dd></div>
+          <div><dt>Company</dt><dd>${r.company ? esc(r.company) : '<span class="muted">Not given</span>'}</dd></div>
+        </dl>
+      </div>
+      <div class="side-block">
+        <h2>Traceability</h2>
+        ${mirrorHTML(r)}
+        <dl class="kv" style="margin-top:12px">
+          <div><dt>Topic</dt><dd>${esc(TOPIC[r.topic])}</dd></div>
+          <div><dt>Submitted</dt><dd>${esc(fullDate(r.created_at))}</dd></div>
+          <div><dt>Team email</dt><dd>${r.notify_error ? `<span class="due due--late">${esc(r.notify_error)}</span>` : r.notified_at ? esc(fullDate(r.notified_at)) : '<span class="muted">Not sent</span>'}</dd></div>
+          <div><dt>Checks</dt><dd>
+            <span class="check">${r.captcha_verified ? '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10.5 8 14l8-8"/></svg>Spam check passed' : "Spam check not run"}</span><br>
+            <span class="check"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10.5 8 14l8-8"/></svg>Accepted privacy terms</span>
+          </dd></div>
+        </dl>
+      </div>
+      <div class="side-block side-actions">
+        <button class="btn btn--sm btn--ghost" type="button" data-action="copy-link">Copy Link</button>
+        <button class="btn btn--sm btn--ghost" type="button" data-action="unread">Mark as Unread</button>
+        ${r.status !== "spam" ? '<button class="btn btn--sm btn--ghost" type="button" data-status="spam">Move to Spam</button>' : ""}
+      </div>
+    </aside>
+  </div>`;
+}
+
 function renderDetail() {
   const pane = $("#detail");
   const r = current();
   if (!r) { pane.innerHTML = state.loaded && state.rows.length ? overviewHTML() : ""; return; }
+  if (MSG) return renderMessageDetail(pane, r);
   const bid = bidInfo(r);
   const files = r.plan_files || [];
   const events = [...(r.quote_events || [])];
@@ -409,6 +575,16 @@ function renderSync() {
   const s = (Date.now() - state.syncedAt) / 1000;
   $("#sync").textContent = s < 60 ? "Updated just now" : `Updated ${Math.floor(s / 60)} min ago`;
 }
+// Unread count on the other section's tab (quotes <-> messages), refreshed with every load.
+async function renderSwitchCount() {
+  const other = MSG ? "quote_requests" : "contact_messages";
+  const el = document.querySelector(`.apps a:not([aria-current]) .apps__n`);
+  if (!el || !session) return;
+  try {
+    const rows = await api(`/${other}?select=id&opened_at=is.null&status=neq.spam`);
+    el.textContent = rows.length ? String(rows.length) : ""; el.hidden = !rows.length;
+  } catch { el.hidden = true; }
+}
 function renderMe() {
   $("#me").innerHTML = `<span class="avatar">${esc(initials(state.me))}</span><span>${esc(state.me || "Account")}</span>`;
 }
@@ -519,6 +695,21 @@ async function addNote(r, body) {
   }
 }
 
+// Send the copy to the current site's database again (Edge Function "contact", staff only).
+async function retryMirror(r) {
+  toast("Sending the copy again…");
+  try {
+    const res = await fetch(`${BASE}/functions/v1/contact`, {
+      method: "POST", headers: { apikey: KEY, "Content-Type": "application/json", ...authHeader() },
+      body: JSON.stringify({ action: "retry-mirror", id: r.id }),
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error === "not_allowed" ? "You don't have permission to do this." : "Couldn't send the copy. Please try again.");
+    toast(d.mirror_status === "sent" ? "Copied to the current site database" : d.mirror_status === "disabled" ? "The copy is turned off for now" : "The copy failed again");
+  } catch (e) { toast(e.message.startsWith("Couldn't") || e.message.startsWith("You") ? e.message : "You seem to be offline. Check your connection and try again."); }
+  load({ quiet: true });
+}
+
 async function copy(text, label = "Copied") {
   try { await navigator.clipboard.writeText(text); toast(label); }
   catch { toast("Couldn't copy. Select the text and copy it instead."); }
@@ -526,6 +717,17 @@ async function copy(text, label = "Copied") {
 
 function exportCsv() {
   const rows = visibleRows();
+  if (MSG) {
+    const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const head = ["Reference", "Received", "Status", "Name", "Email", "Phone", "Company", "Topic", "Message", "Owner", "Copy to current site"];
+    const lines = [head, ...rows.map((r) => [r.reference, new Date(r.created_at).toLocaleString("en-US"), LABEL[r.status], r.full_name, r.email, r.phone,
+      r.company, TOPIC[r.topic], r.message, r.assignee_name, r.mirror_status])].map((l) => l.map(cell).join(","));
+    const blob = new Blob(["\ufeff" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `truss-tech-contact-messages-${new Date().toISOString().slice(0, 10)}.csv` });
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast(`Exported ${rows.length} ${rows.length === 1 ? "message" : "messages"}`);
+    return;
+  }
   const head = ["Reference", "Received", "Status", "Company", "Contact", "Email", "Phone", "Project type", "Trusses", "Bid date", "Job site", "Owner", "Files", "Customer message"];
   const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const lines = [head, ...rows.map((r) => [r.reference, new Date(r.created_at).toLocaleString("en-US"), LABEL[r.status], r.company, r.full_name, r.email, r.phone,
@@ -650,6 +852,7 @@ document.addEventListener("click", (ev) => {
   else if (act === "clear-search") { state.q = ""; $("#q").value = ""; render({ keepDetail: true }); $("#q").focus(); }
   else if (act === "back") back();
   else if (act === "download-all" && r) downloadAll(r);
+  else if (act === "retry-mirror" && r) retryMirror(r);
   else if (act === "take" && r) me().then((who) => who && assign(r, who));
   else if (act === "copy-link" && r) copy(`${location.origin}${location.pathname}#${encodeURIComponent(r.reference)}`, "Link copied");
   else if (act === "unread" && r) {
@@ -701,7 +904,7 @@ function openSettings() {
   $("#acct-name").textContent = state.me;
   $("#acct-email").textContent = state.email;
   $("#acct-role").textContent = { admin: "Admin", estimator: "Estimator", viewer: "Viewer" }[state.role] || "";
-  $("#settings-test").hidden = !["admin", "estimator"].includes(state.role);
+  $("#settings-test").hidden = MSG || !["admin", "estimator"].includes(state.role);
   closePwForm();
   $("#settings-sort").value = state.sort;
   $("#settings-auto").checked = state.auto;
@@ -788,7 +991,7 @@ const field = (name, label, type, autocomplete, value = "", extra = "") => `
     ${type === "password" ? `<button class="gate__eye" type="button" data-eye aria-label="Show password" title="Show password">${ICONS.eye}</button>` : "<span></span>"}
   </label>`;
 const banner = (kind, text) => `<div class="gate__${kind}" role="${kind === "error" ? "alert" : "status"}"${text ? "" : " hidden"}>${ICONS[kind === "error" ? "alert" : "info"]}<span>${esc(text || "")}</span></div>`;
-const brand = `<div class="gate__brand"><span class="gate__mark">${ICONS.mark}</span><span class="logo">TRUSS TECH</span><span class="gate__app">Quote Requests</span></div>`;
+const brand = `<div class="gate__brand"><span class="gate__mark">${ICONS.mark}</span><span class="logo">TRUSS TECH</span><span class="gate__app">${NOUN.App}</span></div>`;
 
 const VIEWS = {
   loading: () => `<div class="gate__loading"><span class="spinner" aria-hidden="true"></span><span class="sr-only">Loading</span></div>`,
@@ -844,7 +1047,7 @@ function lock(view, opts = {}) {
   if (settings.open) settings.close();
   if (!$("#viewer").hidden) closeViewer();
   gate.innerHTML = VIEWS[view](opts);
-  document.title = view === "loading" ? "Quote requests · Truss Tech" : "Sign in · Truss Tech Quote Requests";
+  document.title = view === "loading" ? `${NOUN.app} · Truss Tech` : `Sign in · Truss Tech ${NOUN.App}`;
   const first = opts.focus ? gate.querySelector(`[name="${opts.focus}"]`) : [...gate.querySelectorAll("input")].find((i) => !i.value) || gate.querySelector("input, .gate__submit");
   first?.focus();
 }
@@ -852,7 +1055,7 @@ function unlock() {
   gateView = null;
   document.body.classList.remove("is-locked");
   gate.innerHTML = "";
-  document.title = "Quote requests · Truss Tech";
+  document.title = `${NOUN.app} · Truss Tech`;
 }
 function gateFail(form, message, focusName) {
   const err = form.querySelector(".gate__error");

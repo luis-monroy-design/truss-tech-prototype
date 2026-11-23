@@ -715,3 +715,9 @@ fieldset { border:0; margin:0; padding:0; min-width:0; }
 }
 .reserva.has-img, .vt-card__media:has(img) { background:var(--surface-sunken); outline:0; }
 .reserva.has-img::before, .vt-card__media:has(img)::before { display:none; }
+
+/* ---------- Contact form ---------- */
+.contact-form .hp { position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden; }
+.contact-form .submit-row { margin-top:var(--space-8); }
+.contact-form textarea.vt-field__input { min-height:168px; }
+.contact-sent { outline:0; padding-top:var(--space-2); }

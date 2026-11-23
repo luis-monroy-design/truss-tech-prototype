@@ -187,7 +187,7 @@ kbd { padding:0 6px; border-radius:4px; background:var(--fill); font:500 11px/18
 .row__files svg { width:13px; height:13px; }
 .row__owner { margin-left:auto; }
 .row[aria-current="true"] { background:var(--sel-bg); color:var(--sel-fg); }
-.row[aria-current="true"] :is(.row__time,.row__sub,.row__foot,.row__foot .mono,.status,.due) { color:var(--sel-fg-2) !important; }
+.row[aria-current="true"] :is(.row__time,.row__sub,.row__foot,.row__foot .mono,.status,.due,.row__co,.row__sub b) { color:var(--sel-fg-2) !important; }
 .row[aria-current="true"] .status::before { background:currentColor !important; }
 .row[aria-current="true"] .row__dot { background:var(--sel-fg); }
 .row[aria-current="true"] .avatar { background:var(--sel-fg); color:var(--sel-bg); }
@@ -502,3 +502,30 @@ body.is-locked .gate { flex:1; display:flex; flex-direction:column; align-items:
 
 /* v1: test-stage notice on the sign-in screen */
 .gate__test { display:inline-block; margin-bottom:6px; padding:2px 10px; border-radius:999px; background:var(--yellow-tint); color:var(--blue-text); font-size:11px; font-weight:600; letter-spacing:.02em; }
+
+/* ---------- Sections: Quotes · Messages ---------- */
+.apps { display:inline-flex; gap:2px; padding:2px; border-radius:9px; background:var(--fill); align-self:center; }
+.apps a { display:inline-flex; align-items:center; gap:6px; height:26px; padding:0 11px; border-radius:7px; color:var(--label-2); font-size:13px; font-weight:500; text-decoration:none; white-space:nowrap; }
+.apps a:hover { color:var(--label); }
+.apps a[aria-current="page"] { background:var(--bg-elev); color:var(--label); box-shadow:var(--shadow-card); font-weight:600; }
+.apps__n { min-width:17px; height:17px; padding:0 5px; border-radius:999px; background:var(--blue); color:var(--on-accent); font-size:11px; font-weight:600; line-height:17px; text-align:center; }
+.apps__n[hidden] { display:none; }
+.topbar__brand { align-items:center; }
+
+/* ---------- Contact messages ---------- */
+.status[data-s="replied"]::before { background:var(--green); }
+.status[data-s="closed"]::before { background:var(--gray); }
+.row__co { color:var(--label-2); font-weight:400; }
+.row__sub b { color:var(--label); font-weight:500; }
+.quote--msg { font-size:15px; line-height:1.6; }
+.ev__icon[data-k="mirrored"] { background:var(--green); }
+.ev__icon[data-k="mirror_failed"] { background:var(--red); }
+.mirror { display:grid; grid-template-columns:24px 1fr auto; gap:10px; align-items:start; padding:10px 12px; border-radius:10px; background:var(--fill-2); }
+.mirror__icon { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:var(--gray); color:#fff; }
+.mirror__icon svg { width:12px; height:12px; }
+.mirror[data-m="sent"] .mirror__icon { background:var(--green); }
+.mirror[data-m="failed"] .mirror__icon { background:var(--red); }
+.mirror__title { margin:2px 0 0; font-size:13px; font-weight:600; }
+.mirror__meta { margin:2px 0 0; color:var(--label-2); font-size:12px; overflow-wrap:anywhere; }
+@media (max-width: 860px) { .apps a { padding:0 9px; } }
+@media (max-width: 520px) { .topbar .logo { display:none; } }

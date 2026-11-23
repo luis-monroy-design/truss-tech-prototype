@@ -11,7 +11,7 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin.css?v=7">
+<link rel="stylesheet" href="admin.css?v=9">
 <script>
   // Apply saved appearance before the first paint (no flash). Per-browser preference only.
   try {
@@ -28,7 +28,7 @@
 <header class="topbar">
   <div class="topbar__brand">
     <span class="logo">TRUSS TECH</span>
-    <span class="topbar__app">Quote requests</span>
+    <nav class="apps" aria-label="Admin sections"><a href="index.html" aria-current="page">Quotes<span class="apps__n" hidden></span></a><a href="messages.html">Messages<span class="apps__n" hidden></span></a></nav>
   </div>
   <div class="topbar__tools">
     <span class="sync" id="sync" aria-live="polite"></span>
@@ -200,6 +200,6 @@
   <button class="toast__undo" id="toast-undo" type="button" hidden>Undo</button>
 </div>
 
-<script type="module" src="admin.js?v=7"></script>
+<script type="module" src="admin.js?v=9"></script>
 </body>
 </html>
