@@ -721,3 +721,11 @@ fieldset { border:0; margin:0; padding:0; min-width:0; }
 .contact-form .submit-row { margin-top:var(--space-8); }
 .contact-form textarea.vt-field__input { min-height:168px; }
 .contact-sent { outline:0; padding-top:var(--space-2); }
+
+/* ---------- Hero on phones: animation on top, text below (overlapping only at the fade) ---------- */
+@media (max-width: 720px) {
+  .hero-inner { padding-top:52vh; padding-top:52svh; }
+  .hero-3d, .hero-poster { bottom:auto; height:62vh; height:62svh;
+    -webkit-mask-image:linear-gradient(180deg, #000 72%, transparent 100%); mask-image:linear-gradient(180deg, #000 72%, transparent 100%); }
+  .hero-3d::after, .hero-poster::after { background:linear-gradient(180deg, rgba(21,20,15,.55) 0%, rgba(21,20,15,0) 18%, rgba(21,20,15,0) 70%, rgba(21,20,15,.6) 100%); }
+}

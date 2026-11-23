@@ -247,7 +247,7 @@ export function start(hero) {
     pointer.x += (pointer.tx - pointer.x) * 0.05; pointer.y += (pointer.ty - pointer.y) * 0.05;
     const yaw = THREE.MathUtils.degToRad(lerp(70, 40, intro) + Math.sin(t * 0.06) * 5 + pointer.x * 7 + scrollP * 16);
     const pitch = THREE.MathUtils.degToRad(lerp(26, 11, intro) - pointer.y * 3 + scrollP * 8);
-    const dist = lerp(48, small ? 46 : 33, intro) - scrollP * 4;
+    const dist = lerp(small ? 44 : 48, small ? 40 : 33, intro) - scrollP * 4;
     camera.position.set(target.x + Math.sin(yaw) * Math.cos(pitch) * dist, target.y + Math.sin(pitch) * dist, target.z + Math.cos(yaw) * Math.cos(pitch) * dist);
     camera.lookAt(target);
     sky.position.copy(camera.position);
@@ -258,7 +258,8 @@ export function start(hero) {
     renderer.setSize(w, h, false);
     camera.aspect = w / h;
     if (w > 900) camera.setViewOffset(w, h, -w * 0.22, -h * 0.04, w, h);
-    else camera.setViewOffset(w, h, w * 0.04, h * 0.3, w, h); // phones: building sits above the headline
+    else if (w > 720) camera.setViewOffset(w, h, w * 0.04, h * 0.3, w, h); // tablets: building sits above the headline
+    else camera.setViewOffset(w, h, 0, h * 0.02, w, h); // phones: the canvas only covers the top of the hero, text sits below
     camera.updateProjectionMatrix();
   }
   new ResizeObserver(resize).observe(host); resize();
