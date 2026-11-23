@@ -23,16 +23,16 @@ function whenNear(el, load, margin = "500px 0px") {
 if (!gl2 || light) fallback();
 else {
   if (hero && hero.querySelector("[data-hero-3d]")) {
-    import("./scene3d/hero.js").then((m) => m.start(hero)).catch((e) => { console.warn("3D hero unavailable:", e); fallback(); });
+    import("./scene3d/hero.js?v=1795475404").then((m) => m.start(hero)).catch((e) => { console.warn("3D hero unavailable:", e); fallback(); });
   }
   document.querySelectorAll("[data-markets]").forEach((el) => {
-    if (el.querySelector("[data-market]")) whenNear(el, () => import("./scene3d/markets.js").then((m) => m.start(el)).catch((e) => console.warn("3D markets unavailable:", e)));
+    if (el.querySelector("[data-market]")) whenNear(el, () => import("./scene3d/markets.js?v=1795475404").then((m) => m.start(el)).catch((e) => console.warn("3D markets unavailable:", e)));
   });
   const proc = document.querySelector("[data-process]");
   if (proc && proc.querySelector("[data-proc-3d]")) {
-    whenNear(proc, () => import("./scene3d/process.js").then((m) => m.start(proc)).catch((e) => console.warn("3D process unavailable:", e)), "600px 0px");
+    whenNear(proc, () => import("./scene3d/process.js?v=1795475404").then((m) => m.start(proc)).catch((e) => console.warn("3D process unavailable:", e)), "600px 0px");
   }
   document.querySelectorAll("[data-truss-viewer]").forEach((el) => {
-    whenNear(el, () => import("./scene3d/viewer.js").then((m) => m.start(el)).catch((e) => console.warn("3D viewer unavailable:", e)));
+    whenNear(el, () => import("./scene3d/viewer.js?v=1795475404").then((m) => m.start(el)).catch((e) => console.warn("3D viewer unavailable:", e)));
   });
 }
