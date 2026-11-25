@@ -102,8 +102,9 @@ if (form) {
     if (!res.ok) return showAlert("Message not sent", MESSAGES[data.error] || MESSAGES.server_error);
 
     sent.querySelector("[data-sent-ref]").textContent = data.reference || "—";
+    sent.querySelector("[data-sent-title]").textContent = `Thanks, ${fields.full_name.split(" ")[0]}. We got it.`;
     sent.querySelector("[data-sent-text]").textContent =
-      `Thanks, ${fields.full_name.split(" ")[0]}. A confirmation is on its way to ${fields.email}. We'll reply from the Truss Tech office.`;
+      `A confirmation is on its way to ${fields.email}. We'll reply from the Truss Tech office.`;
     form.hidden = true;
     sent.hidden = false;
     sent.focus();

@@ -1,6 +1,6 @@
 // Truss Tech · market cards: a small 3D model per market that assembles when it scrolls into view and turns
 // with the pointer. One shared WebGL renderer draws every card into its own 2D canvas (no context per card).
-import { THREE, mergeGeometries, rng, clamp01, ease, materials, roofTruss, floorTruss, shadowAll, metalReflections, boxUV } from "./kit.js?v=1795476847";
+import { THREE, mergeGeometries, rng, clamp01, ease, materials, roofTruss, floorTruss, shadowAll, metalReflections, boxUV } from "./kit.js?v=1795574549";
 
 // ---------------------------------------------------------------- helpers
 function placed(geo, x, y, z, rotY = 0) { const g = geo.clone(); if (rotY) g.rotateY(rotY); g.translate(x, y, z); return g; }

@@ -2,7 +2,7 @@
 // the walls are tilted up and the roof trusses are craned in one by one. Pointer and scroll move the camera.
 import {
   THREE, rng, lerp, clamp01, ease, materials, roofTruss, floorTruss, wallFrame, softDot, shadowAll, metalReflections,
-} from "./kit.js?v=1795476847";
+} from "./kit.js?v=1795574549";
 
 // Pine silhouettes on a transparent strip, tiled around the horizon ring.
 function treeline(seed) {

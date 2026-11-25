@@ -1,6 +1,6 @@
 // Truss Tech · product page viewer: one roof or floor truss you can turn by dragging. Turns slowly on its own,
 // eases back after you let go, and lifts into view the first time it appears.
-import { THREE, clamp01, ease, materials, roofTruss, floorTruss, shadowAll, metalReflections } from "./kit.js?v=1795476847";
+import { THREE, clamp01, ease, materials, roofTruss, floorTruss, shadowAll, metalReflections } from "./kit.js?v=1795574549";
 
 export function start(el) {
   const kind = el.dataset.trussViewer === "floor" ? "floor" : "roof";
